@@ -1,10 +1,10 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "Erin's Stealth Combat",
-   LoadingTitle = "Bypassing Internal Checks...",
+   Name = "Erin's Universal & Bodycam Hub",
+   LoadingTitle = "Loading Mission Exploits...",
    LoadingSubtitle = "by NotAmnesia",
-   ConfigurationSaving = { Enabled = true, FolderName = "ErinStealth" }
+   ConfigurationSaving = { Enabled = true, FolderName = "ErinCombat" }
 })
 
 -- SERVICES
@@ -16,16 +16,13 @@ local Camera = workspace.CurrentCamera
 -- SETTINGS
 local StealthSettings = {
     Aimbot = false,
-    ESP = false,
-    TeamCheck = false,
     FOV = 150,
-    Sensitivity = 0.2, -- Smoothness
+    Sensitivity = 0.15, -- Lower = faster/snappier
     AimPart = "Head",
-    FillColor = Color3.fromRGB(255, 0, 0),
-    OutlineColor = Color3.fromRGB(255, 255, 255)
+    TeamCheck = false
 }
 
--- [AIMBOT - MAINTAINED ACCURACY]
+-- [THE PERFECT AIMBOT]
 local function GetClosest()
     local nearest = nil
     local lastDist = StealthSettings.FOV
@@ -54,41 +51,9 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- [STEALTH HIGHLIGHT ESP]
-local function ApplyESP(player)
-    local function CreateHighlight()
-        if player.Character then
-            local highlight = player.Character:FindFirstChild("ErinHighlight") or Instance.new("Highlight")
-            highlight.Name = "ErinHighlight"
-            highlight.Parent = player.Character
-            highlight.FillColor = StealthSettings.FillColor
-            highlight.OutlineColor = StealthSettings.OutlineColor
-            highlight.FillTransparency = 0.5
-            highlight.OutlineTransparency = 0
-            highlight.Enabled = StealthSettings.ESP
-            
-            if StealthSettings.TeamCheck and player.Team == LocalPlayer.Team then
-                highlight.Enabled = false
-            end
-        end
-    end
-    CreateHighlight()
-    player.CharacterAdded:Connect(CreateHighlight)
-end
-
--- Refresh ESP Loop
-task.spawn(function()
-    while task.wait(1) do
-        if StealthSettings.ESP then
-            for _, v in pairs(Players:GetPlayers()) do
-                if v ~= LocalPlayer then ApplyESP(v) end
-            end
-        end
-    end
-end)
-
 --- [TABS] ---
 
+-- COMBAT TAB (Aimbot Only)
 local CombatTab = Window:CreateTab("Combat", 4483362458)
 CombatTab:CreateToggle({
     Name = "Aimbot Enabled",
@@ -104,28 +69,78 @@ CombatTab:CreateSlider({
     Callback = function(v) StealthSettings.FOV = v end
 })
 
-local VisualTab = Window:CreateTab("Stealth Visuals", 4483362458)
-VisualTab:CreateToggle({
-    Name = "Highlight ESP",
-    CurrentValue = false,
-    Callback = function(v) 
-        StealthSettings.ESP = v 
-        for _, p in pairs(Players:GetPlayers()) do
-            if p.Character and p.Character:FindFirstChild("ErinHighlight") then
-                p.Character.ErinHighlight.Enabled = v
+-- BODYCAM MISSION MASTER
+local PlaceId = game.PlaceId
+if PlaceId == 16404660684 or PlaceId == 15358669610 or PlaceId == 16587913123 then
+    local BodycamTab = Window:CreateTab("Bodycam Missions", 4483362458)
+
+    BodycamTab:CreateSection("Mission Cheats")
+    
+    BodycamTab:CreateButton({
+        Name = "Infinite Battery/Flashlight",
+        Callback = function()
+            -- Attempting to find local battery values
+            for _, v in pairs(game:GetDescendants()) do
+                if v.Name:lower():find("battery") or v.Name:lower():find("flashlight") then
+                    if v:IsA("NumberValue") or v:IsA("IntValue") then v.Value = 9999 end
+                end
             end
         end
-    end
-})
+    })
 
-VisualTab:CreateToggle({
-    Name = "Team Check",
-    CurrentValue = false,
-    Callback = function(v) StealthSettings.TeamCheck = v end
-})
+    BodycamTab:CreateButton({
+        Name = "Instant Interaction",
+        Callback = function()
+            -- Speeds up hold-E interactions
+            for _, v in pairs(workspace:GetDescendants()) do
+                if v:IsA("ProximityPrompt") then
+                    v.HoldDuration = 0
+                end
+            end
+        end
+    })
 
-VisualTab:CreateColorPicker({
-    Name = "Glow Color",
-    Color = Color3.fromRGB(255, 0, 0),
-    Callback = function(v) StealthSettings.FillColor = v end
+    BodycamTab:CreateButton({
+        Name = "Fullbright (See Everything)",
+        Callback = function()
+            game.Lighting.Ambient = Color3.new(1, 1, 1)
+            game.Lighting.ColorShift_Bottom = Color3.new(1, 1, 1)
+            game.Lighting.ColorShift_Top = Color3.new(1, 1, 1)
+        end
+    })
+
+    BodycamTab:CreateSection("Teleports")
+    BodycamTab:CreateButton({
+        Name = "TP to Mission Objective",
+        Callback = function()
+            -- Automatically finds items named 'Objective' or 'Key'
+            for _, v in pairs(workspace:GetDescendants()) do
+                if v.Name:lower():find("key") or v.Name:lower():find("objective") or v.Name:lower():find("tool") then
+                    if v:IsA("BasePart") then
+                        LocalPlayer.Character.HumanoidRootPart.CFrame = v.CFrame
+                        break
+                    end
+                end
+            end
+        end
+    })
+else
+    local GenericTab = Window:CreateTab("Missions (Generic)", 4483362458)
+    GenericTab:CreateLabel("Run this in a Bodycam game for more features.")
+    GenericTab:CreateButton({
+        Name = "Instant Proximity Prompts",
+        Callback = function()
+            for _, v in pairs(workspace:GetDescendants()) do
+                if v:IsA("ProximityPrompt") then v.HoldDuration = 0 end
+            end
+        end
+    })
+end
+
+local MiscTab = Window:CreateTab("Misc", 4483362458)
+MiscTab:CreateButton({
+    Name = "Infinite Yield",
+    Callback = function()
+        loadstring(game:HttpGet('https://raw.githubusercontent.com/Edgeiy/infiniteyield/master/source'))()
+    end,
 })
