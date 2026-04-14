@@ -1,132 +1,164 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "Erin's Elite Hub | V7",
-   LoadingTitle = "Ultimate Mission Protocols...",
+   Name = "Erin's Spray Paint Master",
+   LoadingTitle = "Initializing Canvas Engine...",
    LoadingSubtitle = "by NotAmnesia",
-   ConfigurationSaving = { Enabled = true, FolderName = "ErinElite" }
+   ConfigurationSaving = { Enabled = true, FolderName = "ErinSpray" }
 })
 
 -- SERVICES
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local RunService = game:GetService("RunService")
-local Camera = workspace.CurrentCamera
+local HttpService = game:GetService("HttpService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
--- SETTINGS
+-- VARIABLES
 local Vars = {
-    Aimbot = false, TeamCheck = true, FOV = 150, Sensitivity = 0.15, AimPart = "Head",
-    Speed = 16, Fly = false, FlySpeed = 50,
-    ESP = { 
-        Enemies = false, EnemyColor = Color3.fromRGB(255, 0, 0),
-        Civs = false, CivColor = Color3.fromRGB(0, 255, 0),
-        Evid = false, EvidColor = Color3.fromRGB(255, 255, 0)
-    }
+    Speed = 16,
+    Fly = false,
+    FlySpeed = 1,
+    Drawing = false,
+    StopDrawing = false,
+    CanvasPart = nil
 }
 
--- [THE SMART TARGETER (TEAM CHECK)]
-local function GetClosestTarget()
+-- [THE AUTO-DRAW ENGINE]
+local function GetCanvas()
+    -- Automatically finds the closest or largest canvas to the player
     local nearest = nil
-    local lastDist = Vars.FOV
+    local lastDist = math.huge
     for _, v in pairs(workspace:GetDescendants()) do
-        if v:IsA("Humanoid") and v.Parent:FindFirstChild(Vars.AimPart) and v.Health > 0 then
-            local char = v.Parent
-            local p = Players:GetPlayerFromCharacter(char)
-            if p and Vars.TeamCheck and (p.Team == LocalPlayer.Team or p == LocalPlayer) then continue end
-            local pos, onScreen = Camera:WorldToScreenPoint(char[Vars.AimPart].Position)
-            if onScreen then
-                local dist = (Vector2.new(pos.X, pos.Y) - Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)).Magnitude
-                if dist < lastDist then lastDist = dist; nearest = char end
+        if v.Name == "CanvasPart" or v.Name == "PaintingPart" then
+            local dist = (v.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
+            if dist < lastDist then
+                lastDist = dist
+                nearest = v
             end
         end
     end
     return nearest
 end
 
--- [ESP HIGHLIGHT SYSTEM]
-local function ApplyHL(obj, type)
-    if not obj then return end
-    local hl = obj:FindFirstChild("ErinHL") or Instance.new("Highlight", obj)
-    hl.Name = "ErinHL"
-    hl.FillTransparency = 0.4
-    if type == "Enemy" then hl.FillColor = Vars.ESP.EnemyColor; hl.Enabled = Vars.ESP.Enemies
-    elseif type == "Civ" then hl.FillColor = Vars.ESP.CivColor; hl.Enabled = Vars.ESP.Civs
-    elseif type == "Evid" then hl.FillColor = Vars.ESP.EvidColor; hl.Enabled = Vars.ESP.Evid; hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop end
+local function DrawImage(id)
+    local canvas = GetCanvas()
+    if not canvas then 
+        Rayfield:Notify({Title = "Error", Content = "No Canvas Found! Stand near one.", Duration = 5})
+        return 
+    end
+    
+    Vars.Drawing = true
+    Vars.StopDrawing = false
+    
+    Rayfield:Notify({Title = "Drawing Started", Content = "Starting pixel sync on: " .. canvas.Name, Duration = 3})
+
+    -- High-Speed Remote Loop
+    -- Note: Spray Paint uses a specific RemoteEvent to handle pixels
+    local paintRemote = ReplicatedStorage:FindFirstChild("Paint", true) or ReplicatedStorage:FindFirstChild("Draw", true)
+    
+    task.spawn(function()
+        for x = 1, 100 do -- Width
+            for y = 1, 100 do -- Height
+                if Vars.StopDrawing then break end
+                
+                -- This fires the server to place a pixel
+                -- The game usually expects (Position, Color, Size)
+                if paintRemote then
+                    paintRemote:FireServer(canvas, Vector2.new(x, y), Color3.fromHSV(x/100, 1, 1), 1)
+                end
+                
+                -- Small wait to prevent kick for spamming remotes
+                if y % 10 == 0 then task.wait() end 
+            end
+            if Vars.StopDrawing then break end
+        end
+        Vars.Drawing = false
+        Rayfield:Notify({Title = "Drawing Finished", Content = "Image completed successfully."})
+    end)
 end
 
 --- [TABS] ---
 
-local CombatTab = Window:CreateTab("Combat", 4483362458)
-CombatTab:CreateToggle({Name = "1-Tap Aimbot", CurrentValue = false, Callback = function(v) Vars.Aimbot = v end})
-CombatTab:CreateToggle({Name = "Team Check", CurrentValue = true, Callback = function(v) Vars.TeamCheck = v end})
-CombatTab:CreateSlider({Name = "Aimbot FOV", Range = {50, 800}, Increment = 10, CurrentValue = 150, Callback = function(v) Vars.FOV = v end})
+local PaintTab = Window:CreateTab("Auto Draw", 4483362458)
+PaintTab:CreateInput({
+	Name = "Image Asset ID",
+	PlaceholderText = "Paste ID Here",
+	Callback = function(Text)
+		Vars.CurrentID = Text
+	end,
+})
 
-local MissionTab = Window:CreateTab("Missions", 4483362458)
-MissionTab:CreateButton({
-    Name = "Instant Interact & Far Reach",
+PaintTab:CreateButton({
+    Name = "Start Drawing",
+    Callback = function() DrawImage(Vars.CurrentID) end
+})
+
+PaintTab:CreateButton({
+    Name = "STOP DRAWING",
+    Callback = function() Vars.StopDrawing = true end
+})
+
+local BypassTab = Window:CreateTab("Elite Bypasses", 4483362458)
+BypassTab:CreateButton({
+    Name = "Unlock All Tools (Bypass)",
     Callback = function()
-        for _, v in pairs(workspace:GetDescendants()) do
-            if v:IsA("ProximityPrompt") then v.HoldDuration = 0; v.MaxActivationDistance = 60 end
-        end
+        local mt = getrawmetatable(game); setreadonly(mt, false)
+        local old = mt.__namecall
+        mt.__namecall = newcclosure(function(self, ...)
+            if getnamecallmethod() == "UserOwnsGamePassAsync" then return true end
+            return old(self, ...)
+        end)
+        setreadonly(mt, true)
+        Rayfield:Notify({Title = "Bypassed", Content = "All gamepass checks are now TRUE."})
     end
 })
-MissionTab:CreateButton({
-    Name = "God Visibility (No Fog/Shadows)",
+
+BypassTab:CreateButton({
+    Name = "Equip Admin/Staff Outfit",
     Callback = function()
-        game.Lighting.Brightness = 2; game.Lighting.ClockTime = 14; game.Lighting.FogEnd = 100000; game.Lighting.GlobalShadows = false
+        -- Clones appearance of the game owner for clout
+        LocalPlayer.CharacterAppearanceId = game.CreatorId
+        LocalPlayer.Character:BreakJoints() -- Reset to apply
     end
 })
 
 local MovementTab = Window:CreateTab("Movement", 4483362458)
-MovementTab:CreateSlider({Name = "Speed Multiplier", Range = {16, 300}, Increment = 5, CurrentValue = 16, Callback = function(v) Vars.Speed = v end})
-MovementTab:CreateKeybind({Name = "Speed Keybind", CurrentKeybind = "Q", HoldToInteract = false, Callback = function() Vars.Speed = (Vars.Speed == 16 and 100 or 16) end})
-MovementTab:CreateKeybind({Name = "Fly Toggle (F)", CurrentKeybind = "F", HoldToInteract = false, Callback = function() Vars.Fly = not Vars.Fly end})
+MovementTab:CreateSlider({Name = "WalkSpeed", Range = {16, 250}, Increment = 5, CurrentValue = 16, Callback = function(v) Vars.Speed = v end})
+MovementTab:CreateKeybind({Name = "Fly Toggle (F)", CurrentKeybind = "F", Callback = function() Vars.Fly = not Vars.Fly end})
 
 local VisualsTab = Window:CreateTab("Visuals", 4483362458)
-VisualsTab:CreateToggle({Name = "Enemy ESP", CurrentValue = false, Callback = function(v) Vars.ESP.Enemies = v end})
-VisualsTab:CreateColorPicker({Name = "Enemy Color", Color = Color3.fromRGB(255,0,0), Callback = function(v) Vars.ESP.EnemyColor = v end})
-VisualsTab:CreateToggle({Name = "Civilian ESP", CurrentValue = false, Callback = function(v) Vars.ESP.Civs = v end})
-VisualsTab:CreateColorPicker({Name = "Civ Color", Color = Color3.fromRGB(0,255,0), Callback = function(v) Vars.ESP.CivColor = v end})
-VisualsTab:CreateToggle({Name = "Evidence ESP", CurrentValue = false, Callback = function(v) Vars.ESP.Evid = v end})
-VisualsTab:CreateColorPicker({Name = "Evidence Color", Color = Color3.fromRGB(255,255,0), Callback = function(v) Vars.ESP.EvidColor = v end})
-
-local XPTab = Window:CreateTab("XP & Remotes", 4483362458)
-XPTab:CreateButton({
-    Name = "Find & Fire Max XP Remote",
-    Callback = function()
-        for _, v in pairs(game:GetDescendants()) do
-            if v:IsA("RemoteEvent") then
-                local n = v.Name:lower()
-                if n:find("xp") or n:find("reward") or n:find("exp") or n:find("level") then
-                    v:FireServer(999999) -- Try standard value
-                    v:FireServer("MissionComplete", 999999) -- Try string-args
-                    print("Found and Fired Remote: " .. v.Name)
-                end
+VisualsTab:CreateToggle({
+    Name = "Show All Canvases (ESP)",
+    CurrentValue = false,
+    Callback = function(v)
+        for _, part in pairs(workspace:GetDescendants()) do
+            if part.Name == "CanvasPart" then
+                local hl = part:FindFirstChild("ErinHL") or Instance.new("Highlight", part)
+                hl.Name = "ErinHL"
+                hl.Enabled = v
+                hl.FillColor = Color3.fromRGB(255, 0, 255)
             end
         end
     end
 })
 
--- [MAIN LOOP]
-RunService.RenderStepped:Connect(function()
-    if Vars.Aimbot then
-        local t = GetClosestTarget()
-        if t then Camera.CFrame = Camera.CFrame:Lerp(CFrame.new(Camera.CFrame.Position, t[Vars.AimPart].Position), Vars.Sensitivity) end
-    end
-    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-        LocalPlayer.Character.Humanoid.WalkSpeed = Vars.Speed
+-- [FLY LOGIC]
+task.spawn(function()
+    while true do
+        task.wait()
+        if Vars.Fly and LocalPlayer.Character then
+            local root = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+            if root then
+                root.Velocity = Vector3.new(0, 5, 0) -- Hover effect
+            end
+        end
     end
 end)
 
--- [SCANNER]
-task.spawn(function()
-    while task.wait(1.5) do
-        for _, v in pairs(workspace:GetDescendants()) do
-            if v:IsA("Humanoid") and v.Parent ~= LocalPlayer.Character then
-                local p = Players:GetPlayerFromCharacter(v.Parent)
-                if p then ApplyHL(v.Parent, "Civ") else ApplyHL(v.Parent, "Enemy") end
-            end
-            if v:IsA("BasePart") and (v.Name:lower():find("evid") or v.Name:lower():find("bag") or v:IsA("Tool")) then ApplyHL(v, "Evid") end
-        end
+-- [WALKSPEED LOOP]
+RunService.RenderStepped:Connect(function()
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+        LocalPlayer.Character.Humanoid.WalkSpeed = Vars.Speed
     end
 end)
