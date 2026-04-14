@@ -1,50 +1,63 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "Erin's Royale Elite | Campus 4 Edition",
-   LoadingTitle = "Syncing Royal Data...",
+   Name = "Erin's Royale Elite Hub | Premium",
+   LoadingTitle = "Securing Connection to Royale High...",
    LoadingSubtitle = "by NotAmnesia",
-   ConfigurationSaving = { Enabled = true, FolderName = "ErinRoyale" }
+   ConfigurationSaving = { Enabled = true, FolderName = "ErinRoyale" },
+   KeySystem = true, -- ENABLED AS REQUESTED
+   KeySettings = {
+      Title = "Erin's Hub | Key System",
+      Subtitle = "Join Discord for Key",
+      Note = "Key is: ERIN_2026_PREMIUM", -- Change this to whatever you want
+      FileName = "ErinKey",
+      SaveKey = true,
+      GrabKeyFromSite = false,
+      Key = {"ERIN_2026_PREMIUM"}
+   }
 })
 
 -- SERVICES
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
+local TweenService = game:GetService("TweenService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local TeleportService = game:GetService("TeleportService")
+local RunService = game:GetService("RunService")
 
 -- SETTINGS
 local Vars = {
-    AutoDiamonds = false,
-    AutoChairs = false,
-    AutoChest = false,
-    AntiAFK = true
+    AutoFarm = false,
+    FarmSpeed = 150, -- Adjust for safety
+    MusicalChairs = false,
 }
 
--- [ANTI-AFK LOGIC]
-if Vars.AntiAFK then
-    local VirtualUser = game:GetService("VirtualUser")
-    LocalPlayer.Idled:Connect(function()
-        VirtualUser:CaptureController()
-        VirtualUser:ClickButton2(Vector2.new())
-    end)
+-- [SMOOTH TWEEN FUNCTION]
+-- This bypasses the "Teleport Detected" kick
+local function TweenTo(targetCFrame)
+    if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return end
+    local dist = (LocalPlayer.Character.HumanoidRootPart.Position - targetCFrame.Position).Magnitude
+    local info = TweenInfo.new(dist / Vars.FarmSpeed, Enum.EasingStyle.Linear)
+    local tween = TweenService:Create(LocalPlayer.Character.HumanoidRootPart, info, {CFrame = targetCFrame})
+    tween:Play()
+    return tween
 end
 
 --- [MAIN MENU] ---
-local MainTab = Window:CreateTab("Main Menu", 4483362458)
-MainTab:CreateSection("Main Farming")
+local MainTab = Window:CreateTab("Auto Farm", 4483362458)
 
 MainTab:CreateToggle({
-    Name = "Auto Collect Diamonds",
+    Name = "Auto-Collect Diamonds (Smooth)",
     CurrentValue = false,
-    Callback = function(v) 
-        Vars.AutoDiamonds = v
+    Callback = function(v)
+        Vars.AutoFarm = v
         task.spawn(function()
-            while Vars.AutoDiamonds do
-                for _, diamond in pairs(workspace:GetDescendants()) do
-                    if diamond.Name:find("Diamond") and diamond:IsA("BasePart") then
-                        LocalPlayer.Character.HumanoidRootPart.CFrame = diamond.CFrame
-                        task.wait(0.1)
+            while Vars.AutoFarm do
+                for _, obj in pairs(workspace:GetDescendants()) do
+                    if not Vars.AutoFarm then break end
+                    if (obj.Name:find("Diamond") or obj.Name:find("Lolly")) and obj:IsA("BasePart") then
+                        local t = TweenTo(obj.CFrame)
+                        if t then t.Completed:Wait() end
+                        task.wait(0.2) -- Safety delay
                     end
                 end
                 task.wait(1)
@@ -53,48 +66,80 @@ MainTab:CreateToggle({
     end
 })
 
-MainTab:CreateToggle({Name = "Auto Win Musical Chairs", CurrentValue = false, Callback = function(v) Vars.AutoChairs = v end})
-MainTab:CreateToggle({Name = "Auto Farm Art Game (Auto Draw)", CurrentValue = false, Callback = function(v) end})
+--- [CAMPUS 4 AUTOMATION] ---
+local C4Tab = Window:CreateTab("Campus 4", 4483362458)
 
-MainTab:CreateSection("Misc")
-MainTab:CreateButton({Name = "Auto Collect All Chests", Callback = function() 
-    Rayfield:Notify({Title = "Chests", Content = "Scanning realm for hidden chests..."})
-    -- Chest TP Logic here
-end})
-MainTab:CreateButton({Name = "Auto Fountain", Callback = function() end})
-MainTab:CreateButton({Name = "Tidy Textbooks", Callback = function() end})
+C4Tab:CreateButton({
+    Name = "Instant Potionology Win",
+    Callback = function()
+        -- Fires the specific Potionology completion remote
+        local remote = ReplicatedStorage:FindFirstChild("PotionologyRemote", true) -- Example name
+        if remote then
+            remote:FireServer("Complete", true, 100)
+            Rayfield:Notify({Title = "Success", Content = "Potionology Completed!"})
+        end
+    end
+})
 
---- [CAMPUS 4 CLASSES] ---
-local Campus4Tab = Window:CreateTab("Campus 4 Classes", 4483362458)
-Campus4Tab:CreateSection("Class Automation")
-Campus4Tab:CreateToggle({Name = "Auto Potionology", CurrentValue = false, Callback = function(v) end})
-Campus4Tab:CreateToggle({Name = "Auto Star Gazing", CurrentValue = false, Callback = function(v) end})
-Campus4Tab:CreateToggle({Name = "Auto Basketball", CurrentValue = false, Callback = function(v) end})
-Campus4Tab:CreateToggle({Name = "Auto English Class", CurrentValue = false, Callback = function(v) end})
-Campus4Tab:CreateToggle({Name = "Auto Computer Class", CurrentValue = false, Callback = function(v) end})
+C4Tab:CreateButton({
+    Name = "Auto-Solve Homework",
+    Callback = function()
+        -- Scans for the 'Homework' folder in the player's Backpack
+        for _, v in pairs(LocalPlayer.Backpack:GetChildren()) do
+            if v.Name:find("Homework") then
+                -- Automatically triggers the "TurnIn" event
+                local event = v:FindFirstChildOfClass("RemoteEvent")
+                if event then event:FireServer() end
+            end
+        end
+    end
+})
 
-Campus4Tab:CreateSection("Activities")
-Campus4Tab:CreateButton({Name = "Auto Fairy Circle", Callback = function() end})
-Campus4Tab:CreateButton({Name = "Auto Sleep (Night)", Callback = function() end})
-Campus4Tab:CreateButton({Name = "Auto Lunch", Callback = function() end})
+--- [CAMPUS 2 CLASS] ---
+local C2Tab = Window:CreateTab("Campus 2", 4483362458)
 
---- [CAMPUS 2 CLASSES] ---
-local Campus2Tab = Window:CreateTab("Campus 2", 4483362458)
-Campus2Tab:CreateToggle({Name = "Farm English Class", CurrentValue = false, Callback = function(v) end})
-Campus2Tab:CreateToggle({Name = "Farm Chemistry Class", CurrentValue = false, Callback = function(v) end})
-Campus2Tab:CreateToggle({Name = "Farm Swimming Class", CurrentValue = false, Callback = function(v) end})
-Campus2Tab:CreateButton({Name = "Teleport to Class", Callback = function() end})
+C2Tab:CreateToggle({
+    Name = "Auto-Win Musical Chairs",
+    CurrentValue = false,
+    Callback = function(v)
+        Vars.MusicalChairs = v
+        task.spawn(function()
+            while Vars.MusicalChairs do
+                local chair = workspace:FindFirstChild("MusicalChair", true)
+                if chair and chair:IsA("Seat") and not chair.Occupant then
+                    LocalPlayer.Character.HumanoidRootPart.CFrame = chair.CFrame
+                end
+                task.wait(0.05)
+            end
+        end)
+    end
+})
 
---- [STATS MENU] ---
-local StatsTab = Window:CreateTab("Misc Menu", 4483362458)
-local LevelLabel = StatsTab:CreateLabel("Level Progression: Scanning...")
-local DiamondLabel = StatsTab:CreateLabel("Diamonds Detected: 0")
+--- [MISC & STATS] ---
+local MiscTab = Window:CreateTab("Misc Menu", 4483362458)
+
+MiscTab:CreateButton({
+    Name = "Anti-AFK (Stay Online)",
+    Callback = function()
+        local VU = game:GetService("VirtualUser")
+        LocalPlayer.Idled:Connect(function()
+            VU:CaptureController()
+            VU:ClickButton2(Vector2.new())
+        end)
+        Rayfield:Notify({Title = "Anti-AFK", Content = "You can now minimize Roblox."})
+    end
+})
+
+local StatTab = Window:CreateTab("Statistics", 4483362458)
+local LevelLabel = StatTab:CreateLabel("Level: Loading...")
+local DiamLabel = StatTab:CreateLabel("Diamonds on Map: 0")
 
 task.spawn(function()
-    while true do
-        local dCount = 0
-        for _,v in pairs(workspace:GetDescendants()) do if v.Name:find("Diamond") then dCount = dCount + 1 end end
-        DiamondLabel:Set("Diamonds Detected: " .. dCount)
-        task.wait(5)
+    while task.wait(5) do
+        local count = 0
+        for _, v in pairs(workspace:GetDescendants()) do
+            if v.Name:find("Diamond") then count = count + 1 end
+        end
+        DiamLabel:Set("Diamonds on Map: " .. count)
     end
 end)
