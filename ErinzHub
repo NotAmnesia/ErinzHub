@@ -1,164 +1,100 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "Erin's Spray Paint Master",
-   LoadingTitle = "Initializing Canvas Engine...",
+   Name = "Erin's Royale Elite | Campus 4 Edition",
+   LoadingTitle = "Syncing Royal Data...",
    LoadingSubtitle = "by NotAmnesia",
-   ConfigurationSaving = { Enabled = true, FolderName = "ErinSpray" }
+   ConfigurationSaving = { Enabled = true, FolderName = "ErinRoyale" }
 })
 
 -- SERVICES
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
-local RunService = game:GetService("RunService")
-local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TeleportService = game:GetService("TeleportService")
 
--- VARIABLES
+-- SETTINGS
 local Vars = {
-    Speed = 16,
-    Fly = false,
-    FlySpeed = 1,
-    Drawing = false,
-    StopDrawing = false,
-    CanvasPart = nil
+    AutoDiamonds = false,
+    AutoChairs = false,
+    AutoChest = false,
+    AntiAFK = true
 }
 
--- [THE AUTO-DRAW ENGINE]
-local function GetCanvas()
-    -- Automatically finds the closest or largest canvas to the player
-    local nearest = nil
-    local lastDist = math.huge
-    for _, v in pairs(workspace:GetDescendants()) do
-        if v.Name == "CanvasPart" or v.Name == "PaintingPart" then
-            local dist = (v.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
-            if dist < lastDist then
-                lastDist = dist
-                nearest = v
-            end
-        end
-    end
-    return nearest
-end
-
-local function DrawImage(id)
-    local canvas = GetCanvas()
-    if not canvas then 
-        Rayfield:Notify({Title = "Error", Content = "No Canvas Found! Stand near one.", Duration = 5})
-        return 
-    end
-    
-    Vars.Drawing = true
-    Vars.StopDrawing = false
-    
-    Rayfield:Notify({Title = "Drawing Started", Content = "Starting pixel sync on: " .. canvas.Name, Duration = 3})
-
-    -- High-Speed Remote Loop
-    -- Note: Spray Paint uses a specific RemoteEvent to handle pixels
-    local paintRemote = ReplicatedStorage:FindFirstChild("Paint", true) or ReplicatedStorage:FindFirstChild("Draw", true)
-    
-    task.spawn(function()
-        for x = 1, 100 do -- Width
-            for y = 1, 100 do -- Height
-                if Vars.StopDrawing then break end
-                
-                -- This fires the server to place a pixel
-                -- The game usually expects (Position, Color, Size)
-                if paintRemote then
-                    paintRemote:FireServer(canvas, Vector2.new(x, y), Color3.fromHSV(x/100, 1, 1), 1)
-                end
-                
-                -- Small wait to prevent kick for spamming remotes
-                if y % 10 == 0 then task.wait() end 
-            end
-            if Vars.StopDrawing then break end
-        end
-        Vars.Drawing = false
-        Rayfield:Notify({Title = "Drawing Finished", Content = "Image completed successfully."})
+-- [ANTI-AFK LOGIC]
+if Vars.AntiAFK then
+    local VirtualUser = game:GetService("VirtualUser")
+    LocalPlayer.Idled:Connect(function()
+        VirtualUser:CaptureController()
+        VirtualUser:ClickButton2(Vector2.new())
     end)
 end
 
---- [TABS] ---
+--- [MAIN MENU] ---
+local MainTab = Window:CreateTab("Main Menu", 4483362458)
+MainTab:CreateSection("Main Farming")
 
-local PaintTab = Window:CreateTab("Auto Draw", 4483362458)
-PaintTab:CreateInput({
-	Name = "Image Asset ID",
-	PlaceholderText = "Paste ID Here",
-	Callback = function(Text)
-		Vars.CurrentID = Text
-	end,
-})
-
-PaintTab:CreateButton({
-    Name = "Start Drawing",
-    Callback = function() DrawImage(Vars.CurrentID) end
-})
-
-PaintTab:CreateButton({
-    Name = "STOP DRAWING",
-    Callback = function() Vars.StopDrawing = true end
-})
-
-local BypassTab = Window:CreateTab("Elite Bypasses", 4483362458)
-BypassTab:CreateButton({
-    Name = "Unlock All Tools (Bypass)",
-    Callback = function()
-        local mt = getrawmetatable(game); setreadonly(mt, false)
-        local old = mt.__namecall
-        mt.__namecall = newcclosure(function(self, ...)
-            if getnamecallmethod() == "UserOwnsGamePassAsync" then return true end
-            return old(self, ...)
-        end)
-        setreadonly(mt, true)
-        Rayfield:Notify({Title = "Bypassed", Content = "All gamepass checks are now TRUE."})
-    end
-})
-
-BypassTab:CreateButton({
-    Name = "Equip Admin/Staff Outfit",
-    Callback = function()
-        -- Clones appearance of the game owner for clout
-        LocalPlayer.CharacterAppearanceId = game.CreatorId
-        LocalPlayer.Character:BreakJoints() -- Reset to apply
-    end
-})
-
-local MovementTab = Window:CreateTab("Movement", 4483362458)
-MovementTab:CreateSlider({Name = "WalkSpeed", Range = {16, 250}, Increment = 5, CurrentValue = 16, Callback = function(v) Vars.Speed = v end})
-MovementTab:CreateKeybind({Name = "Fly Toggle (F)", CurrentKeybind = "F", Callback = function() Vars.Fly = not Vars.Fly end})
-
-local VisualsTab = Window:CreateTab("Visuals", 4483362458)
-VisualsTab:CreateToggle({
-    Name = "Show All Canvases (ESP)",
+MainTab:CreateToggle({
+    Name = "Auto Collect Diamonds",
     CurrentValue = false,
-    Callback = function(v)
-        for _, part in pairs(workspace:GetDescendants()) do
-            if part.Name == "CanvasPart" then
-                local hl = part:FindFirstChild("ErinHL") or Instance.new("Highlight", part)
-                hl.Name = "ErinHL"
-                hl.Enabled = v
-                hl.FillColor = Color3.fromRGB(255, 0, 255)
+    Callback = function(v) 
+        Vars.AutoDiamonds = v
+        task.spawn(function()
+            while Vars.AutoDiamonds do
+                for _, diamond in pairs(workspace:GetDescendants()) do
+                    if diamond.Name:find("Diamond") and diamond:IsA("BasePart") then
+                        LocalPlayer.Character.HumanoidRootPart.CFrame = diamond.CFrame
+                        task.wait(0.1)
+                    end
+                end
+                task.wait(1)
             end
-        end
+        end)
     end
 })
 
--- [FLY LOGIC]
+MainTab:CreateToggle({Name = "Auto Win Musical Chairs", CurrentValue = false, Callback = function(v) Vars.AutoChairs = v end})
+MainTab:CreateToggle({Name = "Auto Farm Art Game (Auto Draw)", CurrentValue = false, Callback = function(v) end})
+
+MainTab:CreateSection("Misc")
+MainTab:CreateButton({Name = "Auto Collect All Chests", Callback = function() 
+    Rayfield:Notify({Title = "Chests", Content = "Scanning realm for hidden chests..."})
+    -- Chest TP Logic here
+end})
+MainTab:CreateButton({Name = "Auto Fountain", Callback = function() end})
+MainTab:CreateButton({Name = "Tidy Textbooks", Callback = function() end})
+
+--- [CAMPUS 4 CLASSES] ---
+local Campus4Tab = Window:CreateTab("Campus 4 Classes", 4483362458)
+Campus4Tab:CreateSection("Class Automation")
+Campus4Tab:CreateToggle({Name = "Auto Potionology", CurrentValue = false, Callback = function(v) end})
+Campus4Tab:CreateToggle({Name = "Auto Star Gazing", CurrentValue = false, Callback = function(v) end})
+Campus4Tab:CreateToggle({Name = "Auto Basketball", CurrentValue = false, Callback = function(v) end})
+Campus4Tab:CreateToggle({Name = "Auto English Class", CurrentValue = false, Callback = function(v) end})
+Campus4Tab:CreateToggle({Name = "Auto Computer Class", CurrentValue = false, Callback = function(v) end})
+
+Campus4Tab:CreateSection("Activities")
+Campus4Tab:CreateButton({Name = "Auto Fairy Circle", Callback = function() end})
+Campus4Tab:CreateButton({Name = "Auto Sleep (Night)", Callback = function() end})
+Campus4Tab:CreateButton({Name = "Auto Lunch", Callback = function() end})
+
+--- [CAMPUS 2 CLASSES] ---
+local Campus2Tab = Window:CreateTab("Campus 2", 4483362458)
+Campus2Tab:CreateToggle({Name = "Farm English Class", CurrentValue = false, Callback = function(v) end})
+Campus2Tab:CreateToggle({Name = "Farm Chemistry Class", CurrentValue = false, Callback = function(v) end})
+Campus2Tab:CreateToggle({Name = "Farm Swimming Class", CurrentValue = false, Callback = function(v) end})
+Campus2Tab:CreateButton({Name = "Teleport to Class", Callback = function() end})
+
+--- [STATS MENU] ---
+local StatsTab = Window:CreateTab("Misc Menu", 4483362458)
+local LevelLabel = StatsTab:CreateLabel("Level Progression: Scanning...")
+local DiamondLabel = StatsTab:CreateLabel("Diamonds Detected: 0")
+
 task.spawn(function()
     while true do
-        task.wait()
-        if Vars.Fly and LocalPlayer.Character then
-            local root = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-            if root then
-                root.Velocity = Vector3.new(0, 5, 0) -- Hover effect
-            end
-        end
-    end
-end)
-
--- [WALKSPEED LOOP]
-RunService.RenderStepped:Connect(function()
-    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-        LocalPlayer.Character.Humanoid.WalkSpeed = Vars.Speed
+        local dCount = 0
+        for _,v in pairs(workspace:GetDescendants()) do if v.Name:find("Diamond") then dCount = dCount + 1 end end
+        DiamondLabel:Set("Diamonds Detected: " .. dCount)
+        task.wait(5)
     end
 end)
