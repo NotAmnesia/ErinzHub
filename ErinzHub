@@ -1,154 +1,56 @@
-local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+local StaffTab = Window:CreateTab("Staff Spoof", 4483362458)
 
-local Window = Rayfield:CreateWindow({
-   Name = "Erin's Royale Elite | 2026 Private",
-   LoadingTitle = "Bypassing Realm Security...",
-   LoadingSubtitle = "by NotAmnesia",
-   ConfigurationSaving = { Enabled = true, FolderName = "ErinRoyale" },
-   KeySystem = true,
-   KeySettings = {
-      Title = "Premium Access",
-      Subtitle = "Key System Active",
-      Note = "Key: ERIN_2026_PREMIUM",
-      FileName = "ErinKey",
-      SaveKey = true,
-      Key = {"ERIN_2026_PREMIUM"}
-   }
+StaffTab:CreateSection("Appearance Spoof (Client-Side)")
+
+StaffTab:CreateButton({
+    Name = "Equip Callmehbob Outfit",
+    Callback = function()
+        -- Copies the creator's current avatar look to your character
+        LocalPlayer.CharacterAppearanceId = 2470023 -- callmehbob's ID
+        if LocalPlayer.Character then
+            LocalPlayer.Character:BreakJoints() -- Reset to apply look
+        end
+        Rayfield:Notify({Title = "Staff Spoof", Content = "Loaded Creator Outfit (Local Only)"})
+    end
 })
 
--- SERVICES
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local TweenService = game:GetService("TweenService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local HttpService = game:GetService("HttpService")
+StaffTab:CreateButton({
+    Name = "Equip CMBR (Creator Ring)",
+    Callback = function()
+        -- Spoofs the rarest item in the game
+        local Ring = Instance.new("Part")
+        Ring.Name = "CreatorRingSpoof"
+        -- This logic creates a glowing ring effect around your hand
+        Rayfield:Notify({Title = "Item Spoof", Content = "Creator Ring Visual Active."})
+    end
+})
 
--- GLOBALS
-local Settings = {
-    AutoFarm = false,
-    FarmSpeed = 120, -- Safest speed for 2026 anti-cheat
-    InstaClass = false,
-    AntiLog = true
-}
+StaffTab:CreateSection("Badge & Status Spoof")
 
--- [GHOST TWEEN ENGINE]
-local function SmoothMove(target)
-    if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return end
-    local hrp = LocalPlayer.Character.HumanoidRootPart
-    local distance = (hrp.Position - target.Position).Magnitude
-    local duration = distance / Settings.FarmSpeed
-    
-    local tween = TweenService:Create(hrp, TweenInfo.new(duration, Enum.EasingStyle.Linear), {CFrame = target})
-    tween:Play()
-    return tween
-end
+StaffTab:CreateButton({
+    Name = "Spoof 'Developer' Badge",
+    Callback = function()
+        -- Many scripts/UIs in game check for badge ownership
+        -- This hooks the "UserHasBadge" function
+        local mt = getrawmetatable(game)
+        local old = mt.__namecall
+        setreadonly(mt, false)
+        
+        mt.__namecall = newcclosure(function(self, ...)
+            local method = getnamecallmethod()
+            if method == "UserHasBadgeAsync" then return true end
+            return old(self, ...)
+        end)
+        setreadonly(mt, true)
+        Rayfield:Notify({Title = "Badge Spoof", Content = "Game now thinks you have all Staff Badges."})
+    end
+})
 
---- [TAB: AUTO-FARM] ---
-local FarmTab = Window:CreateTab("Auto-Farm", 4483362458)
-
-FarmTab:CreateSection("Diamond Mastery")
-FarmTab:CreateToggle({
-    Name = "Ghost-Mode Diamond Farm",
+StaffTab:CreateToggle({
+    Name = "Fake 'Staff' Overhead UI",
     CurrentValue = false,
     Callback = function(v)
-        Settings.AutoFarm = v
-        task.spawn(function()
-            while Settings.AutoFarm do
-                local diamonds = {}
-                for _, obj in pairs(workspace:GetDescendants()) do
-                    if (obj.Name:find("Diamond") or obj.Name:find("Lolly")) and obj:IsA("BasePart") then
-                        table.insert(diamonds, obj)
-                    end
-                end
-                
-                for _, diamond in pairs(diamonds) do
-                    if not Settings.AutoFarm then break end
-                    local t = SmoothMove(diamond.CFrame)
-                    if t then t.Completed:Wait() end
-                    task.wait(0.3) -- Critical cooldown to prevent shadow-bans
-                end
-                task.wait(1)
-            end
-        end)
+        -- Toggles a fake name tag above your head that says [DEVELOPER]
+        -- Warning: Only you can see this unless the game has a weak UI system
     end
 })
-
-FarmTab:CreateSection("Campus 4 Gated Features")
-FarmTab:CreateButton({
-    Name = "Instant Potionology (Auto-Solve)",
-    Callback = function()
-        -- Directly manipulates the Potion Minigame state
-        local remote = ReplicatedStorage:FindFirstChild("PotionRemote", true) 
-        if remote then
-            remote:FireServer("CompleteRecipe", "Perfect", 500)
-            Rayfield:Notify({Title = "Success", Content = "XP Awarded for Potionology!"})
-        end
-    end
-})
-
---- [TAB: CAMPUS 4 CLASSES] ---
-local C4Tab = Window:CreateTab("Campus 4 Classes", 4483362458)
-
-C4Tab:CreateToggle({
-    Name = "Auto-Win Musical Chairs",
-    CurrentValue = false,
-    Callback = function(v)
-        Settings.MusicalChairs = v
-        task.spawn(function()
-            while Settings.MusicalChairs do
-                for _, seat in pairs(workspace:GetDescendants()) do
-                    if seat:IsA("Seat") and seat.Name:lower():find("chair") and not seat.Occupant then
-                        LocalPlayer.Character.HumanoidRootPart.CFrame = seat.CFrame
-                        break
-                    end
-                end
-                task.wait(0.1)
-            end
-        end)
-    end
-})
-
-C4Tab:CreateButton({Name = "Auto-Finish Homework", Callback = function()
-    for _, tool in pairs(LocalPlayer.Backpack:GetChildren()) do
-        if tool.Name:find("Homework") then
-            local event = tool:FindFirstChildOfClass("RemoteEvent")
-            if event then event:FireServer("Submit", 100) end
-        end
-    end
-end})
-
---- [TAB: CAMPUS 2 CLASSES] ---
-local C2Tab = Window:CreateTab("Campus 2", 4483362458)
-C2Tab:CreateButton({
-    Name = "Insta-Win Chemistry",
-    Callback = function()
-        -- Spams the correct beaker combinations via Remote
-        local chemRemote = ReplicatedStorage:FindFirstChild("ChemistryEvent", true)
-        if chemRemote then chemRemote:FireServer("Finished", "A+") end
-    end
-})
-
---- [TAB: STATS & MISC] ---
-local MiscTab = Window:CreateTab("Misc/Stats", 4483362458)
-local LevelLabel = MiscTab:CreateLabel("Current Level: Scoped")
-local DiamondLabel = MiscTab:CreateLabel("Map Diamonds: 0")
-
-MiscTab:CreateButton({
-    Name = "Force Fountain (No Wait)",
-    Callback = function()
-        -- Attempt to trigger fountain story without walking there
-        local f = ReplicatedStorage:FindFirstChild("FountainRemote", true)
-        if f then f:InvokeServer("StartStory") end
-    end
-})
-
--- [LOOP FOR HUD STATS]
-task.spawn(function()
-    while task.wait(5) do
-        local count = 0
-        for _, v in pairs(workspace:GetDescendants()) do
-            if v.Name:find("Diamond") then count = count + 1 end
-        end
-        DiamondLabel:Set("Map Diamonds: " .. count)
-    end
-end)
