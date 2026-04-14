@@ -1,119 +1,110 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
+-- [[ CONFIG ]]
+local AdminKey = "erin01"
+local DeathPos = nil
+local Training = {Fist = false, Mind = false, Body = false, Speed = false}
+
 local Window = Rayfield:CreateWindow({
-   Name = "Marvel Omega | War Chest & Kill Hub",
-   LoadingTitle = "Calculating Loot Locations...",
+   Name = "Erin's Private | SPTE 2026",
+   LoadingTitle = "Awakening Endless Power...",
    LoadingSubtitle = "by NotAmnesia",
-   ConfigurationSaving = { Enabled = true, FolderName = "ErinMarvel" },
+   ConfigurationSaving = { Enabled = true, FolderName = "ErinSPTE" },
    KeySystem = true,
    KeySettings = {
-      Title = "Elite Avenger Access",
-      Subtitle = "Money Grinder V3",
-      Note = "Key: OMEGA_2026_MARVEL",
-      FileName = "MarvelKey",
+      Title = "Private Access",
+      Subtitle = "SPTE Endless Hub",
+      Note = "Key: erin01",
+      FileName = "ErinKey",
       SaveKey = true,
-      Key = {"OMEGA_2026_MARVEL"}
+      Key = {AdminKey}
    }
 })
 
 -- SERVICES
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local LocalPlayer = game.Players.LocalPlayer
 
--- SETTINGS
-local Vars = { AutoChest = false, KillAura = false, Reach = 25 }
+--- [TAB: AUTO-TRAIN] ---
+local TrainTab = Window:CreateTab("Auto-Train", 4483362458)
 
---- [TAB 1: MONEY GRINDER] ---
-local MoneyTab = Window:CreateTab("Money Farm", 4483362458)
-
-MoneyTab:CreateToggle({
-    Name = "Auto-Loot All Chests (TP Mode)",
+TrainTab:CreateToggle({
+    Name = "Auto-Fist Strength",
     CurrentValue = false,
     Callback = function(v)
-        Vars.AutoChest = v
+        Training.Fist = v
         task.spawn(function()
-            while Vars.AutoChest do
-                -- Scans for Chests in the workspace
-                for _, obj in pairs(workspace:GetDescendants()) do
-                    if (obj.Name:find("Chest") or obj.Name:find("Loot")) and obj:IsA("BasePart") then
-                        local oldPos = LocalPlayer.Character.HumanoidRootPart.CFrame
-                        -- Instant TP to Chest, Interact, then TP back
-                        LocalPlayer.Character.HumanoidRootPart.CFrame = obj.CFrame
-                        task.wait(0.2)
-                        -- Trigger interaction (Adjust for Marvel Omega's Prompt)
-                        fireproximityprompt(obj:FindFirstChildOfClass("ProximityPrompt"))
-                        task.wait(0.1)
-                        LocalPlayer.Character.HumanoidRootPart.CFrame = oldPos
-                    end
-                end
-                task.wait(5) -- Cooldown for new chest spawns
+            while Training.Fist do
+                local r = ReplicatedStorage:FindFirstChild("AddFistStrength", true) or ReplicatedStorage:FindFirstChild("TrainFist", true)
+                if r then r:FireServer() end
+                task.wait(0.01)
             end
         end)
     end
 })
 
-MoneyTab:CreateToggle({
-    Name = "Player Kill-Aura (For Money)",
+TrainTab:CreateToggle({
+    Name = "Auto-Mind (Psychic)",
     CurrentValue = false,
     Callback = function(v)
-        Vars.KillAura = v
+        Training.Mind = v
         task.spawn(function()
-            while Vars.KillAura do
-                for _, p in pairs(Players:GetPlayers()) do
-                    if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("Humanoid") then
-                        local dist = (LocalPlayer.Character.HumanoidRootPart.Position - p.Character.HumanoidRootPart.Position).Magnitude
-                        if dist < Vars.Reach and p.Character.Humanoid.Health > 0 then
-                            -- Firing the damage remotes to secure the kill/money
-                            local attack = ReplicatedStorage:FindFirstChild("Attack", true) 
-                                           or ReplicatedStorage:FindFirstChild("CombatRemote", true)
-                            if attack then attack:FireServer(p.Character) end
-                        end
-                    end
-                end
-                task.wait(0.1)
+            while Training.Mind do
+                local r = ReplicatedStorage:FindFirstChild("AddPsychic", true) or ReplicatedStorage:FindFirstChild("TrainMind", true)
+                if r then r:FireServer() end
+                task.wait(0.01)
             end
         end)
     end
 })
 
---- [TAB 2: COMBAT BOOST] ---
-local CombatTab = Window:CreateTab("Combat", 4483362458)
+--- [TAB: AFK SECURITY] ---
+local AfkTab = Window:CreateTab("AFK Return", 4483362458)
 
-CombatTab:CreateSlider({
-    Name = "Aura Reach",
-    Range = {10, 100},
-    Increment = 1,
-    CurrentValue = 25,
-    Callback = function(v) Vars.Reach = v end
+AfkTab:CreateToggle({
+    Name = "Instant Respawn & Return",
+    CurrentValue = true,
+    Callback = function(v) _G.AutoReturn = v end
 })
 
-CombatTab:CreateButton({
-    Name = "1-Shot NPC (Money Bypass)",
-    Callback = function()
-        -- Metatable Hook for Damage
-        local mt = getrawmetatable(game); setreadonly(mt, false)
-        local old = mt.__namecall
-        mt.__namecall = newcclosure(function(self, ...)
-            local args = {...}
-            if self.Name:lower():find("damage") or self.Name:lower():find("hit") then
-                args[2] = 999999 -- Forced massive damage
-            end
-            return old(self, unpack(args))
-        end)
-        setreadonly(mt, true)
+-- [[ THE ENGINE ]]
+local function ForceSpawn()
+    local pGui = LocalPlayer:WaitForChild("PlayerGui")
+    for _, v in pairs(pGui:GetDescendants()) do
+        if v:IsA("TextButton") and v.Text:upper():find("SPAWN") and v.Visible then
+            local x, y = v.AbsolutePosition.X + (v.AbsoluteSize.X / 2), v.AbsolutePosition.Y + (v.AbsoluteSize.Y / 2)
+            game:GetService("VirtualInputManager"):SendMouseButtonEvent(x, y, 0, true, game, 0)
+            task.wait(0.1)
+            game:GetService("VirtualInputManager"):SendMouseButtonEvent(x, y, 0, false, game, 0)
+        end
     end
-})
+end
 
---- [TAB 3: WORLD] ---
-local WorldTab = Window:CreateTab("World", 4483362458)
+LocalPlayer.CharacterAdded:Connect(function(char)
+    if _G.AutoReturn then
+        task.spawn(ForceSpawn)
+        task.wait(1.5)
+        if DeathPos then char:WaitForChild("HumanoidRootPart").CFrame = DeathPos end
+    end
+    
+    char:WaitForChild("Humanoid").Died:Connect(function()
+        if char:FindFirstChild("HumanoidRootPart") then
+            DeathPos = char.HumanoidRootPart.CFrame
+        end
+    end)
+end)
+
+--- [TAB: WORLD] ---
+local WorldTab = Window:CreateTab("Utility", 4483362458)
 WorldTab:CreateButton({
-    Name = "Chest ESP (Find Wealth)",
+    Name = "Unlock All Zones (Visual Bypass)",
     Callback = function()
-        for _, obj in pairs(workspace:GetDescendants()) do
-            if obj.Name:find("Chest") then
-                local high = Instance.new("Highlight", obj)
-                high.FillColor = Color3.fromRGB(255, 215, 0) -- Gold
+        -- Tells the local game you have the requirements for every training zone
+        for _, zone in pairs(workspace:GetDescendants()) do
+            if zone:IsA("TouchTransmitter") then
+                firetouchinterest(LocalPlayer.Character.HumanoidRootPart, zone.Parent, 0)
+                task.wait(0.1)
+                firetouchinterest(LocalPlayer.Character.HumanoidRootPart, zone.Parent, 1)
             end
         end
     end
