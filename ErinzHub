@@ -1,14 +1,14 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "Erin's Mugen Overlord | Deep Spy",
-   LoadingTitle = "Initializing Sniffer...",
+   Name = "Erin's Mugen Overlord | Mobile Spy",
+   LoadingTitle = "Bypassing Mobile Limits...",
    LoadingSubtitle = "by NotAmnesia",
    ConfigurationSaving = { Enabled = true, FolderName = "ErinMugen" },
    KeySystem = true,
    KeySettings = {
-      Title = "Security Clearance",
-      Subtitle = "2026 Spy System",
+      Title = "Elite Access",
+      Subtitle = "Mobile Key System",
       Note = "Key: ERIN_2026_PREMIUM",
       FileName = "ErinKey",
       SaveKey = true,
@@ -16,71 +16,60 @@ local Window = Rayfield:CreateWindow({
    }
 })
 
--- [THE POWERFUL SNIFFER ENGINE]
-local SpyLogs = {}
-local function StartDeepSpy()
-    local mt = getrawmetatable(game)
-    local oldNamecall = mt.__namecall
-    setreadonly(mt, false)
+-- LOGGING SYSTEM
+local RemoteLog = "No remotes found yet..."
 
-    mt.__namecall = newcclosure(function(self, ...)
-        local method = getnamecallmethod()
-        local args = {...}
-
-        if method == "FireServer" then
-            local remoteName = tostring(self.Name)
-            local data = ""
-            for i, v in pairs(args) do
-                data = data .. "[" .. i .. "]: " .. tostring(v) .. " | "
-            end
-            
-            -- Filter for Tokens or Currency specifically
-            if remoteName:lower():find("token") or remoteName:lower():find("currency") or remoteName:lower():find("add") then
-                print("🚨 TOKEN REMOTE FOUND: " .. remoteName)
-                print("Args: " .. data)
-                table.insert(SpyLogs, "Found: " .. remoteName .. " | Data: " .. data)
-            end
-        end
-        return oldNamecall(self, ...)
-    end)
-    setreadonly(mt, true)
-end
-
---- [TAB: AUTO FARM] ---
-local FarmTab = Window:CreateTab("Auto Train", 4483362458)
-FarmTab:CreateToggle({
-    Name = "Auto-Punch (Fast)",
+--- [TAB: AUTO TRAIN] ---
+local TrainTab = Window:CreateTab("Auto Train", 4483362458)
+TrainTab:CreateToggle({
+    Name = "Auto-Punch",
     CurrentValue = false,
     Callback = function(v) _G.Punch = v
         task.spawn(function()
             while _G.Punch do
                 local r = game:GetService("ReplicatedStorage"):FindFirstChild("AddFistStrength", true)
                 if r then r:FireServer() end
-                task.wait(0.01)
+                task.wait(0.1)
             end
         end)
     end
 })
 
---- [TAB: REMOTE SPY] ---
-local SpyTab = Window:CreateTab("Remote Spy", 4483362458)
+--- [TAB: MOBILE SPY] ---
+local SpyTab = Window:CreateTab("Mobile Spy", 4483362458)
+
+local LogLabel = SpyTab:CreateLabel(RemoteLog)
 
 SpyTab:CreateButton({
-    Name = "ACTIVATE DEEP SNIFFER",
+    Name = "ACTIVATE SNIFFER",
     Callback = function()
-        StartDeepSpy()
-        Rayfield:Notify({Title = "Spy Active", Content = "Sniffing all Token & Currency Remotes. Check F9 Console!"})
+        Rayfield:Notify({Title = "Spy Active", Content = "Pick up a token to log the remote!"})
+        
+        local mt = getrawmetatable(game)
+        local old = mt.__namecall
+        setreadonly(mt, false)
+
+        mt.__namecall = newcclosure(function(self, ...)
+            local method = getnamecallmethod()
+            if method == "FireServer" then
+                local name = tostring(self.Name)
+                -- If the remote name looks like currency, update the label
+                if name:lower():find("token") or name:lower():find("strength") or name:lower():find("cash") then
+                    RemoteLog = "FOUND: " .. name
+                    LogLabel:Set(RemoteLog) -- This updates the text on your screen!
+                end
+            end
+            return old(self, ...)
+        end)
+        setreadonly(mt, true)
     end
 })
 
 SpyTab:CreateButton({
-    Name = "Test Token Remote (Fire Logged)",
+    Name = "Copy Found Remote Name",
     Callback = function()
-        if #SpyLogs > 0 then
-            Rayfield:Notify({Title = "Remote Found", Content = "Check the F9 log for the Token event name."})
-        else
-            Rayfield:Notify({Title = "Searching...", Content = "Go click a token in-game or buy something to log it!"})
-        end
+        setclipboard(RemoteLog)
+        Rayfield:Notify({Title = "Copied", Content = "Remote name sent to your clipboard!"})
     end
 })
 
