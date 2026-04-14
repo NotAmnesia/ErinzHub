@@ -1,10 +1,10 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "Erin's Universal & Bodycam Hub",
-   LoadingTitle = "Loading Mission Exploits...",
+   Name = "Erin's Bodycam God-Mode",
+   LoadingTitle = "Executing Mission Protocols...",
    LoadingSubtitle = "by NotAmnesia",
-   ConfigurationSaving = { Enabled = true, FolderName = "ErinCombat" }
+   ConfigurationSaving = { Enabled = true, FolderName = "ErinBodycam" }
 })
 
 -- SERVICES
@@ -12,24 +12,33 @@ local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local RunService = game:GetService("RunService")
 local Camera = workspace.CurrentCamera
+local UserInputService = game:GetService("UserInputService")
 
 -- SETTINGS
-local StealthSettings = {
+local Vars = {
     Aimbot = false,
     FOV = 150,
-    Sensitivity = 0.15, -- Lower = faster/snappier
+    Sensitivity = 0.15,
     AimPart = "Head",
-    TeamCheck = false
+    
+    Speed = 16,
+    Fly = false,
+    FlySpeed = 50,
+    
+    ESP = {
+        Enemies = false, EnemyColor = Color3.fromRGB(255, 0, 0),
+        Civilians = false, CivColor = Color3.fromRGB(0, 255, 0),
+        Evidence = false, EvidColor = Color3.fromRGB(255, 255, 0)
+    }
 }
 
--- [THE PERFECT AIMBOT]
+-- [AIMBOT LOGIC]
 local function GetClosest()
     local nearest = nil
-    local lastDist = StealthSettings.FOV
+    local lastDist = Vars.FOV
     for _, v in pairs(Players:GetPlayers()) do
-        if v ~= LocalPlayer and v.Character and v.Character:FindFirstChild(StealthSettings.AimPart) then
-            if StealthSettings.TeamCheck and v.Team == LocalPlayer.Team then continue end
-            local pos, onScreen = Camera:WorldToScreenPoint(v.Character[StealthSettings.AimPart].Position)
+        if v ~= LocalPlayer and v.Character and v.Character:FindFirstChild(Vars.AimPart) then
+            local pos, onScreen = Camera:WorldToScreenPoint(v.Character[Vars.AimPart].Position)
             if onScreen then
                 local dist = (Vector2.new(pos.X, pos.Y) - Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)).Magnitude
                 if dist < lastDist then
@@ -42,105 +51,98 @@ local function GetClosest()
     return nearest
 end
 
+-- [ESP HIGHLIGHT LOGIC]
+local function ApplyHighlight(obj, type)
+    if not obj then return end
+    local hl = obj:FindFirstChild("ErinHL") or Instance.new("Highlight")
+    hl.Name = "ErinHL"
+    hl.Parent = obj
+    hl.Enabled = false
+    
+    if type == "Enemy" then
+        hl.FillColor = Vars.ESP.EnemyColor
+        hl.Enabled = Vars.ESP.Enemies
+    elseif type == "Civ" then
+        hl.FillColor = Vars.ESP.CivColor
+        hl.Enabled = Vars.ESP.Civilians
+    elseif type == "Evid" then
+        hl.FillColor = Vars.ESP.EvidColor
+        hl.Enabled = Vars.ESP.Evidence
+    end
+end
+
+-- [MAIN LOOP]
 RunService.RenderStepped:Connect(function()
-    if StealthSettings.Aimbot then
+    -- Aimbot
+    if Vars.Aimbot then
         local target = GetClosest()
         if target then
-            Camera.CFrame = Camera.CFrame:Lerp(CFrame.new(Camera.CFrame.Position, target.Character[StealthSettings.AimPart].Position), StealthSettings.Sensitivity)
+            Camera.CFrame = Camera.CFrame:Lerp(CFrame.new(Camera.CFrame.Position, target.Character[Vars.AimPart].Position), Vars.Sensitivity)
         end
+    end
+    -- Speed
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+        LocalPlayer.Character.Humanoid.WalkSpeed = Vars.Speed
     end
 end)
 
 --- [TABS] ---
 
--- COMBAT TAB (Aimbot Only)
 local CombatTab = Window:CreateTab("Combat", 4483362458)
-CombatTab:CreateToggle({
-    Name = "Aimbot Enabled",
-    CurrentValue = false,
-    Callback = function(v) StealthSettings.Aimbot = v end
-})
+CombatTab:CreateToggle({Name = "1-Tap Aimbot", CurrentValue = false, Callback = function(v) Vars.Aimbot = v end})
+CombatTab:CreateSlider({Name = "Aimbot FOV", Range = {50, 800}, Increment = 10, CurrentValue = 150, Callback = function(v) Vars.FOV = v end})
 
-CombatTab:CreateSlider({
-    Name = "Aimbot FOV",
-    Range = {50, 800},
-    Increment = 10,
-    CurrentValue = 150,
-    Callback = function(v) StealthSettings.FOV = v end
-})
-
--- BODYCAM MISSION MASTER
-local PlaceId = game.PlaceId
-if PlaceId == 16404660684 or PlaceId == 15358669610 or PlaceId == 16587913123 then
-    local BodycamTab = Window:CreateTab("Bodycam Missions", 4483362458)
-
-    BodycamTab:CreateSection("Mission Cheats")
-    
-    BodycamTab:CreateButton({
-        Name = "Infinite Battery/Flashlight",
-        Callback = function()
-            -- Attempting to find local battery values
-            for _, v in pairs(game:GetDescendants()) do
-                if v.Name:lower():find("battery") or v.Name:lower():find("flashlight") then
-                    if v:IsA("NumberValue") or v:IsA("IntValue") then v.Value = 9999 end
-                end
-            end
-        end
-    })
-
-    BodycamTab:CreateButton({
-        Name = "Instant Interaction",
-        Callback = function()
-            -- Speeds up hold-E interactions
-            for _, v in pairs(workspace:GetDescendants()) do
-                if v:IsA("ProximityPrompt") then
-                    v.HoldDuration = 0
-                end
-            end
-        end
-    })
-
-    BodycamTab:CreateButton({
-        Name = "Fullbright (See Everything)",
-        Callback = function()
-            game.Lighting.Ambient = Color3.new(1, 1, 1)
-            game.Lighting.ColorShift_Bottom = Color3.new(1, 1, 1)
-            game.Lighting.ColorShift_Top = Color3.new(1, 1, 1)
-        end
-    })
-
-    BodycamTab:CreateSection("Teleports")
-    BodycamTab:CreateButton({
-        Name = "TP to Mission Objective",
-        Callback = function()
-            -- Automatically finds items named 'Objective' or 'Key'
-            for _, v in pairs(workspace:GetDescendants()) do
-                if v.Name:lower():find("key") or v.Name:lower():find("objective") or v.Name:lower():find("tool") then
-                    if v:IsA("BasePart") then
-                        LocalPlayer.Character.HumanoidRootPart.CFrame = v.CFrame
-                        break
-                    end
-                end
-            end
-        end
-    })
-else
-    local GenericTab = Window:CreateTab("Missions (Generic)", 4483362458)
-    GenericTab:CreateLabel("Run this in a Bodycam game for more features.")
-    GenericTab:CreateButton({
-        Name = "Instant Proximity Prompts",
-        Callback = function()
-            for _, v in pairs(workspace:GetDescendants()) do
-                if v:IsA("ProximityPrompt") then v.HoldDuration = 0 end
-            end
-        end
-    })
-end
-
-local MiscTab = Window:CreateTab("Misc", 4483362458)
-MiscTab:CreateButton({
-    Name = "Infinite Yield",
+local MissionTab = Window:CreateTab("Missions", 4483362458)
+MissionTab:CreateButton({
+    Name = "Instant & Far Interact",
     Callback = function()
-        loadstring(game:HttpGet('https://raw.githubusercontent.com/Edgeiy/infiniteyield/master/source'))()
-    end,
+        for _, v in pairs(workspace:GetDescendants()) do
+            if v:IsA("ProximityPrompt") then
+                v.HoldDuration = 0
+                v.MaxActivationDistance = 50
+            end
+        end
+    end
 })
+MissionTab:CreateButton({
+    Name = "God Visibility (No Fog/Shadows)",
+    Callback = function()
+        game.Lighting.Brightness = 2
+        game.Lighting.ClockTime = 14
+        game.Lighting.FogEnd = 100000
+        game.Lighting.GlobalShadows = false
+        game.Lighting.OutdoorAmbient = Color3.new(1,1,1)
+    end
+})
+
+local MovementTab = Window:CreateTab("Movement", 4483362458)
+MovementTab:CreateSlider({Name = "Speed Multiplier", Range = {16, 300}, Increment = 5, CurrentValue = 16, Callback = function(v) Vars.Speed = v end})
+MovementTab:CreateKeybind({
+	Name = "Fly Toggle",
+	CurrentKeybind = "F",
+	HoldToInteract = false,
+	Callback = function() Vars.Fly = not Vars.Fly end,
+})
+
+local VisualsTab = Window:CreateTab("Visuals", 4483362458)
+-- Enemies
+VisualsTab:CreateToggle({Name = "Enemy ESP", CurrentValue = false, Callback = function(v) Vars.ESP.Enemies = v end})
+VisualsTab:CreateColorPicker({Name = "Enemy Color", Color = Color3.fromRGB(255,0,0), Callback = function(v) Vars.ESP.EnemyColor = v end})
+-- Civilians
+VisualsTab:CreateToggle({Name = "Civilian ESP", CurrentValue = false, Callback = function(v) Vars.ESP.Civilians = v end})
+VisualsTab:CreateColorPicker({Name = "Civ Color", Color = Color3.fromRGB(0,255,0), Callback = function(v) Vars.ESP.CivColor = v end})
+-- Evidence
+VisualsTab:CreateToggle({Name = "Evidence ESP", CurrentValue = false, Callback = function(v) Vars.ESP.Evidence = v end})
+VisualsTab:CreateColorPicker({Name = "Evidence Color", Color = Color3.fromRGB(255,255,0), Callback = function(v) Vars.ESP.EvidColor = v end})
+
+-- [AUTO-SCAN FOR ESP]
+task.spawn(function()
+    while task.wait(2) do
+        for _, v in pairs(workspace:GetDescendants()) do
+            if v.Name:lower():find("enemy") or v.Name:lower():find("suspect") then ApplyHighlight(v, "Enemy")
+            elseif v.Name:lower():find("civ") or v.Name:lower():find("hostage") then ApplyHighlight(v, "Civ")
+            elseif v.Name:lower():find("evidence") or v.Name:lower():find("objective") or v:IsA("Tool") then ApplyHighlight(v, "Evid")
+            end
+        end
+    end
+end)
