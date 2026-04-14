@@ -1,14 +1,14 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "Erin's Croydon | Money Master",
-   LoadingTitle = "Bypassing Economy Encryption...",
+   Name = "Erin's Croydon | Force-Drive V10",
+   LoadingTitle = "Bypassing Physics Engine...",
    LoadingSubtitle = "by NotAmnesia",
    ConfigurationSaving = { Enabled = true, FolderName = "ErinCroydon" },
    KeySystem = true,
    KeySettings = {
       Title = "Elite Access",
-      Subtitle = "Money Farm Key",
+      Subtitle = "Physics Bypass Key",
       Note = "Key: ERIN_2026_PREMIUM",
       FileName = "ErinKey",
       SaveKey = true,
@@ -17,55 +17,62 @@ local Window = Rayfield:CreateWindow({
 })
 
 -- SERVICES
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
---- [TAB: THE MONEY HUB] ---
-local MoneyTab = Window:CreateTab("Money & XP", 4483362458)
+-- VARS
+local Vars = {
+    AutoDrive = false,
+    DriveSpeed = 50,
+    NoClip = false
+}
 
-MoneyTab:CreateSection("Economy Exploits")
-
-MoneyTab:CreateButton({
-    Name = "Claim All 'Ghost' Stop Rewards",
-    Callback = function()
-        -- This attempts to fire the 'PassengerBoarded' or 'RouteComplete' remotes
-        -- These are the only way to get money in Croydon.
-        local events = {"AddCredits", "CompleteStop", "GiveReward", "UpdateBalance"}
-        
-        for _, name in pairs(events) do
-            local remote = ReplicatedStorage:FindFirstChild(name, true)
-            if remote and remote:IsA("RemoteEvent") then
-                remote:FireServer(999) -- Attempting to spoof a high reward
-                Rayfield:Notify({Title = "Remote Fired", Content = "Attempting to sync: " .. name})
-            end
+-- [THE PHYSICS PUSHER]
+local function GetBus()
+    for _, v in pairs(workspace.Vehicles:GetChildren()) do
+        if v:FindFirstChild("Owner") and v.Owner.Value == LocalPlayer.Name then
+            return v
         end
+    end
+    return nil
+end
+
+--- [TAB: AUTO-FARM] ---
+local FarmTab = Window:CreateTab("Auto-Farm", 4483362458)
+
+FarmTab:CreateToggle({
+    Name = "Force-Drive (Push Bus Forward)",
+    CurrentValue = false,
+    Callback = function(v)
+        Vars.AutoDrive = v
+        task.spawn(function()
+            while Vars.AutoDrive do
+                local bus = GetBus()
+                if bus and bus:FindFirstChild("DriveSeat") then
+                    -- This physically pushes the bus so the server thinks you're driving
+                    bus.DriveSeat.Velocity = bus.DriveSeat.CFrame.LookVector * Vars.DriveSpeed
+                end
+                task.wait()
+            end
+        end)
     end
 })
 
---- [TAB: THE AUTO-DRIVE FIX] ---
-local FarmTab = Window:CreateTab("Auto-Farm Fix", 4483362458)
-
 FarmTab:CreateToggle({
-    Name = "Legit-Mode Auto Stop",
+    Name = "Noclip Bus (Drive Through Cars)",
     CurrentValue = false,
     Callback = function(v)
-        _G.AutoFarm = v
+        Vars.NoClip = v
         task.spawn(function()
-            while _G.AutoFarm do
-                pcall(function()
-                    -- Instead of Tweening, this snaps your CHARACTER to the stop
-                    -- Sometimes the game rewards the player even if the bus isn't there
-                    local route = LocalPlayer:FindFirstChild("CurrentRoute", true)
-                    if route then
-                        for _, stop in pairs(route:GetChildren()) do
-                            if not _G.AutoFarm then break end
-                            LocalPlayer.Character.HumanoidRootPart.CFrame = stop.CFrame
-                            task.wait(3) -- Time for passengers to 'load'
-                        end
+            while Vars.NoClip do
+                local bus = GetBus()
+                if bus then
+                    for _, part in pairs(bus:GetDescendants()) do
+                        if part:IsA("BasePart") then part.CanCollide = false end
                     end
-                end)
-                task.wait(1)
+                end
+                task.wait(0.1)
             end
         end)
     end
@@ -73,15 +80,31 @@ FarmTab:CreateToggle({
 
 --- [TAB: TELEPORTS] ---
 local TPTab = Window:CreateTab("Teleports", 4483362458)
-TPTab:CreateButton({Name = "TP to Spawner", Callback = function() LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(-34, 12, 110) end})
-TPTab:CreateButton({Name = "TP to City Center", Callback = function() LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(-200, 15, 500) end})
 
---- [TAB: PLAYER] ---
-local PlayerTab = Window:CreateTab("Player", 4483362458)
-PlayerTab:CreateSlider({
-    Name = "WalkSpeed",
-    Range = {16, 150},
-    Increment = 1,
-    CurrentValue = 16,
-    Callback = function(v) LocalPlayer.Character.Humanoid.WalkSpeed = v end
+TPTab:CreateButton({
+    Name = "TP Character to Current Bus",
+    Callback = function()
+        local bus = GetBus()
+        if bus and bus:FindFirstChild("DriveSeat") then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = bus.DriveSeat.CFrame
+        else
+            Rayfield:Notify({Title = "Error", Content = "No bus found! Spawn one first."})
+        end
+    end
+})
+
+--- [TAB: WORLD] ---
+local WorldTab = Window:CreateTab("World", 4483362458)
+WorldTab:CreateButton({
+    Name = "Remove Bus Speed Limiter",
+    Callback = function()
+        local bus = GetBus()
+        if bus then
+            for _, v in pairs(bus:GetDescendants()) do
+                if v.Name == "MaxSpeed" or v.Name == "Governor" then
+                    if v:IsA("NumberValue") or v:IsA("IntValue") then v.Value = 500 end
+                end
+            end
+        end
+    end
 })
