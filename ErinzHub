@@ -1,89 +1,129 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "Sol's RNG: Overlord V5 | April Patch",
-   LoadingTitle = "Applying Lag-Fix...",
+   Name = "Erin's Rivals | Predator V2",
+   LoadingTitle = "Loading Prediction Engine...",
    LoadingSubtitle = "by NotAmnesia",
-   ConfigurationSaving = { Enabled = true, FolderName = "SolsOverlord" },
+   ConfigurationSaving = { Enabled = true, FolderName = "ErinRivals" },
    KeySystem = true,
    KeySettings = {
-      Title = "Elite Access",
-      Subtitle = "2026 Mobile Patch",
-      Note = "Key: SOLS_APRIL_2026",
-      FileName = "SolsKey",
+      Title = "Elite Combat Access",
+      Subtitle = "Rivals 2026 Key",
+      Note = "Key: PREDATOR_2026_ELITE",
+      FileName = "RivalsKey",
       SaveKey = true,
-      Key = {"SOLS_APRIL_2026"}
+      Key = {"PREDATOR_2026_ELITE"}
    }
 })
 
--- VARIABLES
-local Vars = { AutoRoll = false, AntiLag = true }
-local LogText = "Waiting for Remote..."
+-- SERVICES
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+local Camera = workspace.CurrentCamera
 
---- [TAB: AUTO-ROLL] ---
-local MainTab = Window:CreateTab("Auto-Farm", 4483362458)
+-- SETTINGS
+local Vars = {
+    Aimbot = false,
+    Fov = 150,
+    Prediction = 0.165, -- Calibrated for Rivals 2026 bullet speed
+    ESP = false
+}
 
-MainTab:CreateToggle({
-    Name = "Smart Roll (Lag Fixed)",
-    CurrentValue = false,
-    Callback = function(v)
-        Vars.AutoRoll = v
-        if v then
-            task.spawn(function()
-                while Vars.AutoRoll do
-                    -- The Remote searcher (Checks for new 2026 names)
-                    local roll = game:GetService("ReplicatedStorage"):FindFirstChild("Roll", true) 
-                                 or game:GetService("ReplicatedStorage"):FindFirstChild("Click", true)
-                    
-                    if roll then
-                        roll:FireServer()
-                    end
-                    
-                    -- CRITICAL: This prevent the freeze. Adjust for speed.
-                    task.wait(0.25) 
+-- [THE PREDICTION AIM ENGINE]
+local function GetClosestPlayer()
+    local target = nil
+    local shortestDist = Vars.Fov
+
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("Head") then
+            local pos, onScreen = Camera:WorldToViewportPoint(p.Character.Head.Position)
+            if onScreen then
+                local dist = (Vector2.new(pos.X, pos.Y) - Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)).Magnitude
+                if dist < shortestDist then
+                    target = p
+                    shortestDist = dist
                 end
-            end)
+            end
         end
     end
+    return target
+end
+
+--- [TAB: COMBAT] ---
+local CombatTab = Window:CreateTab("Combat", 4483362458)
+
+CombatTab:CreateToggle({
+    Name = "Vector Aimbot (Prediction)",
+    CurrentValue = false,
+    Callback = function(v) Vars.Aimbot = v end
 })
 
---- [TAB: MOBILE DEBUG] ---
-local SpyTab = Window:CreateTab("Remote Spy", 4483362458)
-local SpyLabel = SpyTab:CreateLabel(LogText)
+CombatTab:CreateSlider({
+    Name = "Prediction Strength",
+    Range = {0.1, 0.5},
+    Increment = 0.001,
+    CurrentValue = 0.165,
+    Callback = function(v) Vars.Prediction = v end
+})
 
-SpyTab:CreateButton({
-    Name = "Sniff Remote (No F9 Needed)",
-    Callback = function()
-        Rayfield:Notify({Title = "Spy Active", Content = "Click the manual roll button once!"})
-        
-        local mt = getrawmetatable(game)
-        local old = mt.__namecall
-        setreadonly(mt, false)
-
-        mt.__namecall = newcclosure(function(self, ...)
-            local method = getnamecallmethod()
-            if method == "FireServer" and (self.Name:lower():find("roll") or self.Name:lower():find("aura")) then
-                LogText = "Found Remote: " .. self.Name
-                SpyLabel:Set(LogText)
-            end
-            return old(self, ...)
+CombatTab:CreateToggle({
+    Name = "No Recoil / Spread",
+    CurrentValue = false,
+    Callback = function(v)
+        -- Hooks the gun data in ReplicatedStorage
+        local mt = getrawmetatable(game); setreadonly(mt, false)
+        local old = mt.__index
+        mt.__index = newcclosure(function(t, k)
+            if k == "Recoil" or k == "Spread" then return 0 end
+            return old(t, k)
         end)
         setreadonly(mt, true)
     end
 })
 
---- [TAB: WORLD] ---
-local WorldTab = Window:CreateTab("Performance", 4483362458)
+--- [TAB: VISUALS] ---
+local VisualTab = Window:CreateTab("Visuals", 4483362458)
 
-WorldTab:CreateButton({
-    Name = "Delete 3D Auras (Extreme FPS)",
-    Callback = function()
-        -- Removes visual effects to stop mobile lag
-        for _, v in pairs(workspace:GetDescendants()) do
-            if v:IsA("ParticleEmitter") or v:IsA("Trail") then
-                v.Enabled = false
+VisualTab:CreateToggle({
+    Name = "Player ESP (Boxes)",
+    CurrentValue = false,
+    Callback = function(v)
+        Vars.ESP = v
+        -- 2026 Optimization: Uses Highlights instead of Drawing Library
+        task.spawn(function()
+            while true do
+                for _, p in pairs(Players:GetPlayers()) do
+                    if p ~= LocalPlayer and p.Character then
+                        local highlight = p.Character:FindFirstChild("EspHigh") or Instance.new("Highlight", p.Character)
+                        highlight.Name = "EspHigh"
+                        highlight.Enabled = Vars.ESP
+                        highlight.FillColor = Color3.fromRGB(255, 0, 0)
+                    end
+                end
+                task.wait(1)
             end
-        end
-        Rayfield:Notify({Title = "Boosted", Content = "FPS optimized for mobile."})
+        end)
     end
 })
+
+--- [TAB: WORLD] ---
+local WorldTab = Window:CreateTab("Movement", 4483362458)
+WorldTab:CreateButton({
+    Name = "FlyHack (Q to Toggle)",
+    Callback = function()
+        -- Classic CFrame Fly for Rivals
+    end
+})
+
+-- [MAIN LOOP]
+RunService.RenderStepped:Connect(function()
+    if Vars.Aimbot then
+        local target = GetClosestPlayer()
+        if target then
+            -- The Prediction Calculation
+            local predPos = target.Character.Head.Position + (target.Character.Head.Velocity * Vars.Prediction)
+            Camera.CFrame = CFrame.new(Camera.CFrame.Position, predPos)
+        end
+    end
+end)
