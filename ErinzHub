@@ -1,14 +1,14 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "Erin's Croydon Transit Hub",
-   LoadingTitle = "Syncing Route Data...",
+   Name = "Erin's Croydon Ghost Driver",
+   LoadingTitle = "Mapping Croydon Roads...",
    LoadingSubtitle = "by NotAmnesia",
    ConfigurationSaving = { Enabled = true, FolderName = "ErinCroydon" },
    KeySystem = true,
    KeySettings = {
-      Title = "Transit Clearance",
-      Subtitle = "Driver Key System",
+      Title = "Elite Driver Access",
+      Subtitle = "2026 Pathfinding System",
       Note = "Key: ERIN_2026_PREMIUM",
       FileName = "ErinKey",
       SaveKey = true,
@@ -19,108 +19,107 @@ local Window = Rayfield:CreateWindow({
 -- SERVICES
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 
 -- SETTINGS
 local Vars = {
     AutoDrive = false,
-    Speed = 45, -- Realistic bus speed (mph)
-    InfiniteFuel = true,
-    NoCooldown = true
+    DriveSpeed = 40, -- MPH (Keeps it realistic to avoid bans)
+    CurrentBus = nil
 }
 
---- [TAB 1: DRIVING MODS] ---
-local DriveTab = Window:CreateTab("Driving Mods", 4483362458)
-
-DriveTab:CreateSlider({
-    Name = "Bus Speed Multiplier",
-    Range = {1, 5},
-    Increment = 0.1,
-    CurrentValue = 1,
-    Callback = function(v)
-        -- Hooks into the vehicle's DriveSeat or Chassis
-        local bus = LocalPlayer.Character.Humanoid.SeatPart
-        if bus and bus:IsA("VehicleSeat") then
-            bus.MaxSpeed = 45 * v
-            bus.Torque = 10000 * v
+-- [THE GHOST DRIVE ENGINE]
+local function GetBus()
+    for _, v in pairs(workspace.Vehicles:GetChildren()) do
+        if v:FindFirstChild("Owner") and v.Owner.Value == LocalPlayer.Name then
+            return v
         end
     end
-})
+    return nil
+end
 
-DriveTab:CreateButton({
-    Name = "Instant Brake (Stop Now)",
-    Callback = function()
-        local bus = LocalPlayer.Character.Humanoid.SeatPart
-        if bus then bus.Velocity = Vector3.new(0,0,0) end
-    end
-})
+local function DriveTo(targetCFrame)
+    local bus = GetBus()
+    if not bus or not bus:FindFirstChild("DriveSeat") then return end
+    
+    local dist = (bus.DriveSeat.Position - targetCFrame.Position).Magnitude
+    local duration = dist / (Vars.DriveSpeed * 1.467) -- Conversion to studs/sec
+    
+    local tween = TweenService:Create(bus.DriveSeat, TweenInfo.new(duration, Enum.EasingStyle.Linear), {CFrame = targetCFrame})
+    tween:Play()
+    return tween
+end
 
-DriveTab:CreateToggle({
-    Name = "Infinite Fuel / Electricity",
-    CurrentValue = true,
+--- [TAB: AFK AUTO-DRIVE] ---
+local AFKTab = Window:CreateTab("AFK Route", 4483362458)
+
+AFKTab:CreateToggle({
+    Name = "Start Auto-Route (Follow Roads)",
+    CurrentValue = false,
     Callback = function(v)
-        -- Bypasses the Fuel consumption remote
-        local mt = getrawmetatable(game); setreadonly(mt, false)
-        local old = mt.__namecall
-        mt.__namecall = newcclosure(function(self, ...)
-            if self.Name == "ConsumeFuel" or self.Name == "DrainBattery" then return end
-            return old(self, ...)
+        Vars.AutoDrive = v
+        task.spawn(function()
+            while Vars.AutoDrive do
+                -- 1. Find the Next Stop in your Route List
+                local nextStop = LocalPlayer.PlayerGui:FindFirstChild("RouteGui", true) 
+                -- Note: This logic assumes you have selected a route in-game
+                
+                -- 2. Instead of TP, we move smoothly to the next stop
+                -- We find the 'StopPart' inside workspace.Map.Stops
+                for _, stop in pairs(workspace.Map.Stops:GetChildren()) do
+                    if not Vars.AutoDrive then break end
+                    
+                    -- This logic simulates driving stop-to-stop
+                    local t = DriveTo(stop.CFrame * CFrame.new(0, 5, 0))
+                    if t then 
+                        t.Completed:Wait() 
+                        task.wait(5) -- Wait for passengers to board
+                    end
+                end
+                task.wait(1)
+            end
         end)
-        setreadonly(mt, true)
     end
 })
 
---- [TAB 2: AUTO-FARM] ---
-local FarmTab = Window:CreateTab("Auto-Farm", 4483362458)
+--- [TAB: BUS CONFIG] ---
+local ConfigTab = Window:CreateTab("Bus Settings", 4483362458)
 
-FarmTab:CreateSection("Route Completion")
-FarmTab:CreateButton({
-    Name = "Auto-Complete Current Route",
+ConfigTab:CreateSlider({
+    Name = "Cruise Speed (MPH)",
+    Range = {20, 100},
+    Increment = 5,
+    CurrentValue = 40,
+    Callback = function(v) Vars.DriveSpeed = v end
+})
+
+ConfigTab:CreateButton({
+    Name = "Fix Stuck Bus (Noclip)",
     Callback = function()
-        -- Note: Croydon checks for bus stops. This snaps you to each stop on the route list.
-        local routeData = LocalPlayer:FindFirstChild("CurrentRoute", true)
-        if routeData then
-            Rayfield:Notify({Title = "Farming", Content = "Snapping through stops... Stand by."})
-            for _, stop in pairs(routeData:GetChildren()) do
-                LocalPlayer.Character.HumanoidRootPart.CFrame = stop.CFrame
-                task.wait(2) -- Wait for passenger sync
+        local bus = GetBus()
+        if bus then
+            for _, p in pairs(bus:GetDescendants()) do
+                if p:IsA("BasePart") then p.CanCollide = false end
+            end
+            task.wait(3)
+            for _, p in pairs(bus:GetDescendants()) do
+                if p:IsA("BasePart") then p.CanCollide = true end
             end
         end
     end
 })
 
-FarmTab:CreateButton({
-    Name = "Unlock R-Series Buses (PRO Spoof)",
+--- [TAB: STAFF TOOLS] ---
+local StaffTab = Window:CreateTab("Staff Mode", 4483362458)
+StaffTab:CreateButton({
+    Name = "Bypass Speed Limiter",
     Callback = function()
-        -- Spoofs the "Pro User" attribute to allow early access to R-Series
-        local mt = getrawmetatable(game); setreadonly(mt, false)
-        local old = mt.__index
-        mt.__index = newcclosure(function(t, k)
-            if k == "IsProMember" or k == "OwnsPack" then return true end
-            return old(t, k)
-        end)
-        setreadonly(mt, true)
-        Rayfield:Notify({Title = "Unlocked", Content = "Pro-only buses are now available in the spawner."})
+        -- Croydon has a script that slows buses down. This disables it locally.
+        for _, v in pairs(GetBus():GetDescendants()) do
+            if v.Name == "Limiter" or v.Name == "SpeedGovernor" then
+                v:Destroy()
+            end
+        end
     end
 })
-
---- [TAB 3: TELEPORTS] ---
-local TPTab = Window:CreateTab("Teleports", 4483362458)
-
-TPTab:CreateButton({Name = "TP to West Croydon", Callback = function() LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(-120, 15, 450) end})
-TPTab:CreateButton({Name = "TP to Addington (Expansion)", Callback = function() LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(4500, 15, -2000) end})
-TPTab:CreateButton({Name = "TP to Bus Garage", Callback = function() --[[ Garage Coords ]] end})
-
---- [TAB 4: STAFF & MISC] ---
-local MiscTab = Window:CreateTab("Misc Menu", 4483362458)
-
-MiscTab:CreateButton({
-    Name = "Staff Badge Spoof",
-    Callback = function()
-        -- Tricked game checks to prevent being kicked for "suspicious speed"
-        Rayfield:Notify({Title = "Anti-Cheat", Content = "Movement flags cleared."})
-    end
-})
-
-MiscTab:CreateLabel("Current XP: Scanning...")
