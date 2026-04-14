@@ -1,8 +1,8 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "Erin's Bodycam God-Mode V2",
-   LoadingTitle = "Bypassing NPC Protection...",
+   Name = "Erin's Bodycam V4",
+   LoadingTitle = "Syncing Team IFF...",
    LoadingSubtitle = "by NotAmnesia",
    ConfigurationSaving = { Enabled = true, FolderName = "ErinBodycam" }
 })
@@ -16,45 +16,33 @@ local Camera = workspace.CurrentCamera
 -- SETTINGS
 local Vars = {
     Aimbot = false,
-    TargetNPCs = true, -- Now targets NPCs!
+    TeamCheck = true,
     FOV = 150,
     Sensitivity = 0.15,
     AimPart = "Head",
     Speed = 16,
     ESP = {
         Enemies = false, EnemyColor = Color3.fromRGB(255, 0, 0),
-        Civilians = false, CivColor = Color3.fromRGB(0, 255, 0),
+        Team = false, TeamColor = Color3.fromRGB(0, 255, 0), -- FIXED GREEN
         Evidence = false, EvidColor = Color3.fromRGB(255, 255, 0)
     }
 }
 
--- [THE NPC-COMPATIBLE AIMBOT]
+-- [TARGETER LOGIC]
 local function GetClosestTarget()
     local nearest = nil
     local lastDist = Vars.FOV
     
-    -- This scans EVERYTHING in the game for potential targets
     for _, v in pairs(workspace:GetDescendants()) do
-        local isTarget = false
-        local char = nil
-        
-        -- Check if it's a Player or an NPC
-        if v:IsA("Humanoid") and v.Parent:FindFirstChild("Head") and v.Health > 0 then
-            local potentialParent = v.Parent
-            local isPlayer = Players:GetPlayerFromCharacter(potentialParent)
+        if v:IsA("Humanoid") and v.Parent:FindFirstChild(Vars.AimPart) and v.Health > 0 then
+            local char = v.Parent
+            local isPlayer = Players:GetPlayerFromCharacter(char)
             
-            if isPlayer then
-                if isPlayer ~= LocalPlayer and not Vars.TargetNPCs then -- Target Players logic
-                    isTarget = true
-                    char = potentialParent
-                end
-            elseif Vars.TargetNPCs then -- Target NPCs logic
-                isTarget = true
-                char = potentialParent
+            -- If TeamCheck is on, skip anyone on our team
+            if isPlayer and Vars.TeamCheck and (isPlayer.Team == LocalPlayer.Team or isPlayer == LocalPlayer) then
+                continue 
             end
-        end
 
-        if isTarget and char then
             local pos, onScreen = Camera:WorldToScreenPoint(char[Vars.AimPart].Position)
             if onScreen then
                 local dist = (Vector2.new(pos.X, pos.Y) - Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)).Magnitude
@@ -68,7 +56,28 @@ local function GetClosestTarget()
     return nearest
 end
 
--- [LOOP]
+-- [ESP HIGHLIGHT LOGIC]
+local function ApplyHighlight(obj, type)
+    if not obj then return end
+    local hl = obj:FindFirstChild("ErinHL") or Instance.new("Highlight")
+    hl.Name = "ErinHL"
+    hl.Parent = obj
+    hl.FillTransparency = 0.4
+    
+    if type == "Enemy" then
+        hl.FillColor = Vars.ESP.EnemyColor
+        hl.Enabled = Vars.ESP.Enemies
+    elseif type == "Team" then
+        hl.FillColor = Vars.ESP.TeamColor -- Green
+        hl.Enabled = Vars.ESP.Team
+    elseif type == "Evid" then
+        hl.FillColor = Vars.ESP.EvidColor
+        hl.Enabled = Vars.ESP.Evidence
+        hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    end
+end
+
+-- [MAIN LOOP]
 RunService.RenderStepped:Connect(function()
     if Vars.Aimbot then
         local target = GetClosestTarget()
@@ -81,38 +90,26 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- [ESP SYSTEM]
-local function ApplyHighlight(obj, type)
-    if not obj then return end
-    local hl = obj:FindFirstChild("ErinHL") or Instance.new("Highlight")
-    hl.Name = "ErinHL"
-    hl.Parent = obj
-    hl.FillTransparency = 0.4
-    hl.OutlineTransparency = 0
-    
-    if type == "Enemy" then
-        hl.FillColor = Vars.ESP.EnemyColor
-        hl.Enabled = Vars.ESP.Enemies
-    elseif type == "Civ" then
-        hl.FillColor = Vars.ESP.CivColor
-        hl.Enabled = Vars.ESP.Civilians
-    elseif type == "Evid" then
-        hl.FillColor = Vars.ESP.EvidColor
-        hl.Enabled = Vars.ESP.Evidence
-        hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-    end
-end
-
 --- [TABS] ---
 
 local CombatTab = Window:CreateTab("Combat", 4483362458)
 CombatTab:CreateToggle({Name = "1-Tap Aimbot", CurrentValue = false, Callback = function(v) Vars.Aimbot = v end})
-CombatTab:CreateToggle({Name = "Target NPCs (Turn ON for Missions)", CurrentValue = true, Callback = function(v) Vars.TargetNPCs = v end})
+CombatTab:CreateToggle({Name = "Team Check (Friendly Fire Off)", CurrentValue = true, Callback = function(v) Vars.TeamCheck = v end})
 CombatTab:CreateSlider({Name = "Aimbot FOV", Range = {50, 800}, Increment = 10, CurrentValue = 150, Callback = function(v) Vars.FOV = v end})
+
+local VisualsTab = Window:CreateTab("Visuals", 4483362458)
+VisualsTab:CreateSection("Enemies")
+VisualsTab:CreateToggle({Name = "Enemy ESP (Red)", CurrentValue = false, Callback = function(v) Vars.ESP.Enemies = v end})
+
+VisualsTab:CreateSection("Friendlies")
+VisualsTab:CreateToggle({Name = "Team ESP (Green)", CurrentValue = false, Callback = function(v) Vars.ESP.Team = v end})
+
+VisualsTab:CreateSection("Objectives")
+VisualsTab:CreateToggle({Name = "Evidence ESP (Yellow)", CurrentValue = false, Callback = function(v) Vars.ESP.Evidence = v end})
 
 local MissionTab = Window:CreateTab("Missions", 4483362458)
 MissionTab:CreateButton({
-    Name = "Instant & Far Interact",
+    Name = "Instant Interaction",
     Callback = function()
         for _, v in pairs(workspace:GetDescendants()) do
             if v:IsA("ProximityPrompt") then
@@ -122,33 +119,23 @@ MissionTab:CreateButton({
         end
     end
 })
-MissionTab:CreateButton({
-    Name = "Full Bright / No Fog",
-    Callback = function()
-        game.Lighting.Brightness = 2
-        game.Lighting.ClockTime = 14
-        game.Lighting.FogEnd = 100000
-        game.Lighting.GlobalShadows = false
-    end
-})
-
-local VisualsTab = Window:CreateTab("Visuals", 4483362458)
-VisualsTab:CreateToggle({Name = "Enemy ESP", CurrentValue = false, Callback = function(v) Vars.ESP.Enemies = v end})
-VisualsTab:CreateColorPicker({Name = "Enemy Color", Color = Color3.fromRGB(255,0,0), Callback = function(v) Vars.ESP.EnemyColor = v end})
-
-VisualsTab:CreateToggle({Name = "Evidence/Items ESP", CurrentValue = false, Callback = function(v) Vars.ESP.Evidence = v end})
-VisualsTab:CreateColorPicker({Name = "Item Color", Color = Color3.fromRGB(255,255,0), Callback = function(v) Vars.ESP.EvidColor = v end})
 
 -- [SMART SCANNER]
 task.spawn(function()
-    while task.wait(2) do
+    while task.wait(1) do
         for _, v in pairs(workspace:GetDescendants()) do
-            -- Enemy/NPC Detection
             if v:IsA("Humanoid") and v.Parent ~= LocalPlayer.Character then
-                if v.Parent:FindFirstChild("Head") then ApplyHighlight(v.Parent, "Enemy") end
+                local p = Players:GetPlayerFromCharacter(v.Parent)
+                -- If it's a player on our team, highlight Green
+                if p and (p.Team == LocalPlayer.Team or p.TeamColor == LocalPlayer.TeamColor) then
+                    ApplyHighlight(v.Parent, "Team")
+                else
+                    -- If it's an NPC or enemy player, highlight Red
+                    ApplyHighlight(v.Parent, "Enemy")
+                end
             end
-            -- Evidence Detection (Evidence, Bag, Tool, Notebook, Key, etc)
-            if v:IsA("BasePart") and (v.Name:lower():find("evid") or v.Name:lower():find("bag") or v.Name:lower():find("key") or v.Name:lower():find("tool") or v.Name:lower():find("item")) then
+            -- Evidence
+            if v:IsA("BasePart") and (v.Name:lower():find("evid") or v.Name:lower():find("bag") or v:IsA("Tool")) then
                 ApplyHighlight(v, "Evid")
             end
         end
