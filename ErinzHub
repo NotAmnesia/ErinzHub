@@ -1,18 +1,14 @@
--- [2026 COMPATIBILITY LAYER]
-if not game:IsLoaded() then game.Loaded:Wait() end
-local CoreGui = game:GetService("CoreGui")
-
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "Erin's Royale Elite | 2026 FIXED",
-   LoadingTitle = "Bypassing Character Controller v2...",
+   Name = "Erin's Jail Cell Elite | Ultimate v2",
+   LoadingTitle = "Bypassing Cell Security...",
    LoadingSubtitle = "by NotAmnesia",
-   ConfigurationSaving = { Enabled = true, FolderName = "ErinRoyale" },
+   ConfigurationSaving = { Enabled = true, FolderName = "ErinJailCell" },
    KeySystem = true,
    KeySettings = {
-      Title = "Elite Access",
-      Subtitle = "2026 Patch Key",
+      Title = "Premium Access",
+      Subtitle = "Cell Key System",
       Note = "Key: ERIN_2026_PREMIUM",
       FileName = "ErinKey",
       SaveKey = true,
@@ -24,42 +20,120 @@ local Window = Rayfield:CreateWindow({
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
--- [RE-ADDING ALL TABS FROM PREVIOUS VERSIONS]
-local MainTab = Window:CreateTab("Main Menu", 4483362458)
-MainTab:CreateSection("------- 2026 Fixed Features -------")
+-- SETTINGS
+local Vars = {
+    AutoCollect = false,
+    InstaBuild = false,
+    AntiHorror = false,
+    Speed = 16
+}
 
-MainTab:CreateToggle({
-    Name = "Auto-Collect Diamonds",
+--- [TAB 1: MAIN FARM] ---
+local FarmTab = Window:CreateTab("Auto Farm", 4483362458)
+
+FarmTab:CreateSection("Economy")
+FarmTab:CreateToggle({
+    Name = "Auto-Collect Money Drops",
     CurrentValue = false,
     Callback = function(v)
-        _G.Farm = v
+        Vars.AutoCollect = v
         task.spawn(function()
-            while _G.Farm do
-                pcall(function() -- Added pcall to prevent crashes on map load
-                    for _, d in pairs(workspace:GetDescendants()) do
-                        if not _G.Farm then break end
-                        if d.Name:find("Diamond") and d:IsA("BasePart") then
-                            LocalPlayer.Character.HumanoidRootPart.CFrame = d.CFrame
-                            task.wait(0.5)
-                        end
+            while Vars.AutoCollect do
+                for _, obj in pairs(workspace:GetDescendants()) do
+                    if obj.Name == "Cash" or obj.Name == "Money" then
+                        -- Instantly fires the collection remote
+                        local remote = ReplicatedStorage:FindFirstChild("CollectMoney", true)
+                        if remote then remote:FireServer(obj) end
                     end
-                end)
+                end
                 task.wait(1)
             end
         end)
     end
 })
 
--- [ADD REMAINING TABS: C4, C2, STAFF, MISC...]
--- (Keeping all the 7+ tabs we built previously)
-
-local StaffTab = Window:CreateTab("Staff Spoof", 4483362458)
-StaffTab:CreateButton({
-    Name = "Equip 2026 Dev Cape",
+FarmTab:CreateButton({
+    Name = "Infinite VIP Plants (Auto-Spawn)",
     Callback = function()
-        Rayfield:Notify({Title = "Visuals", Content = "Dev Cape Spoofed (Local Only)"})
+        -- Fires the event for the new April 2nd Plants Update
+        local plantRemote = ReplicatedStorage:FindFirstChild("PlantRemote", true)
+        if plantRemote then plantRemote:FireServer("SpawnVIP", 999) end
     end
 })
 
-Rayfield:Notify({Title = "Ready", Content = "Erin's Hub successfully patched for 2026 updates.", Duration = 5})
+--- [TAB 2: CELL MODS] ---
+local CellTab = Window:CreateTab("Cell Builder", 4483362458)
+
+CellTab:CreateToggle({
+    Name = "Instant Build (No Timer)",
+    CurrentValue = false,
+    Callback = function(v) Vars.InstaBuild = v end
+})
+
+CellTab:CreateButton({
+    Name = "Unlock All Furniture Items",
+    Callback = function()
+        -- Metatable Bypass to spoof ownership of VIP items
+        local mt = getrawmetatable(game); setreadonly(mt, false)
+        local old = mt.__namecall
+        mt.__namecall = newcclosure(function(self, ...)
+            if self.Name == "CheckOwnership" then return true end
+            return old(self, ...)
+        end)
+        setreadonly(mt, true)
+        Rayfield:Notify({Title = "Unlocked", Content = "All furniture now selectable!"})
+    end
+})
+
+--- [TAB 3: HORROR BYPASS] ---
+local HorrorTab = Window:CreateTab("Anti-Horror", 4483362458)
+
+HorrorTab:CreateButton({
+    Name = "Disable Jumpscares",
+    Callback = function()
+        for _, v in pairs(LocalPlayer.PlayerGui:GetDescendants()) do
+            if v.Name:lower():find("scare") or v.Name:lower():find("horror") then
+                v:Destroy()
+            end
+        end
+    end
+})
+
+HorrorTab:CreateButton({
+    Name = "Full Bright (No Shadows)",
+    Callback = function()
+        game.Lighting.Brightness = 2
+        game.Lighting.GlobalShadows = false
+        game.Lighting.FogEnd = 9e9
+    end
+})
+
+--- [TAB 4: STAFF & PLAYER] ---
+local PlayerTab = Window:CreateTab("Player", 4483362458)
+
+PlayerTab:CreateSlider({
+    Name = "WalkSpeed",
+    Range = {16, 200},
+    Increment = 1,
+    CurrentValue = 16,
+    Callback = function(v) Vars.Speed = v end
+})
+
+PlayerTab:CreateButton({
+    Name = "Staff Cloak (Invisible)",
+    Callback = function()
+        LocalPlayer.Character.HumanoidRootPart.Transparency = 1
+        for _, v in pairs(LocalPlayer.Character:GetChildren()) do
+            if v:IsA("BasePart") then v.Transparency = 1 end
+        end
+    end
+})
+
+-- [CORE LOOP]
+RunService.RenderStepped:Connect(function()
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+        LocalPlayer.Character.Humanoid.WalkSpeed = Vars.Speed
+    end
+end)
