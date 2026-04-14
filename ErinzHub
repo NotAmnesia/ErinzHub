@@ -1,1 +1,45 @@
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
+local Window = Rayfield:CreateWindow({
+   Name = "Elite Multi-Game Hub",
+   LoadingTitle = "Detecting Game...",
+   LoadingSubtitle = "by NotAmnesia",
+   ConfigurationSaving = { Enabled = true, FolderName = "EliteHubConfigs" }
+})
+
+-- UNIVERSAL TAB (Features for EVERY game)
+local MainTab = Window:CreateTab("Universal", 4483362458)
+MainTab:CreateButton({
+   Name = "Infinite Yield",
+   Callback = function()
+      loadstring(game:HttpGet('https://raw.githubusercontent.com/Edgeiy/infiniteyield/master/source'))()
+   end,
+})
+
+-- GAME DETECTION SYSTEM
+-- You can add hundreds of these "elseif" blocks!
+if game.PlaceId == 155615604 then -- Prison Life
+    local GameTab = Window:CreateTab("Prison Life", 4483362458)
+    GameTab:CreateLabel("Prison Life Mod Loaded")
+    -- Insert Prison Life specific buttons here
+
+elseif game.PlaceId == 2753915549 then -- Blox Fruits
+    local GameTab = Window:CreateTab("Blox Fruits", 4483362458)
+    -- You can even load a whole separate script file for this game:
+    -- loadstring(game:HttpGet("https://raw.githubusercontent.com/NotAmnesia/hub.lua/main/games/bloxfruits.lua"))()
+
+elseif game.PlaceId == 189707 then -- Natural Disaster Survival
+    local GameTab = Window:CreateTab("Natural Disaster", 4483362458)
+    GameTab:CreateButton({
+        Name = "Teleport to Island",
+        Callback = function()
+            game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(-2, 47, 0)
+        end,
+    })
+
+else
+    -- If the game isn't on your list yet
+    local UnknownTab = Window:CreateTab("Unsupported", 4483362458)
+    UnknownTab:CreateLabel("This game is not yet in the Hub.")
+    UnknownTab:CreateParagraph({Title = "Notice", Content = "Only Universal features are available."})
+end
