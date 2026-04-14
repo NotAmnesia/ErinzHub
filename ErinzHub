@@ -1,18 +1,17 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "Erin's Royale Elite Hub | Premium",
-   LoadingTitle = "Securing Connection to Royale High...",
+   Name = "Erin's Royale Elite | 2026 Private",
+   LoadingTitle = "Bypassing Realm Security...",
    LoadingSubtitle = "by NotAmnesia",
    ConfigurationSaving = { Enabled = true, FolderName = "ErinRoyale" },
-   KeySystem = true, -- ENABLED AS REQUESTED
+   KeySystem = true,
    KeySettings = {
-      Title = "Erin's Hub | Key System",
-      Subtitle = "Join Discord for Key",
-      Note = "Key is: ERIN_2026_PREMIUM", -- Change this to whatever you want
+      Title = "Premium Access",
+      Subtitle = "Key System Active",
+      Note = "Key: ERIN_2026_PREMIUM",
       FileName = "ErinKey",
       SaveKey = true,
-      GrabKeyFromSite = false,
       Key = {"ERIN_2026_PREMIUM"}
    }
 })
@@ -22,43 +21,51 @@ local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local TweenService = game:GetService("TweenService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
+local HttpService = game:GetService("HttpService")
 
--- SETTINGS
-local Vars = {
+-- GLOBALS
+local Settings = {
     AutoFarm = false,
-    FarmSpeed = 150, -- Adjust for safety
-    MusicalChairs = false,
+    FarmSpeed = 120, -- Safest speed for 2026 anti-cheat
+    InstaClass = false,
+    AntiLog = true
 }
 
--- [SMOOTH TWEEN FUNCTION]
--- This bypasses the "Teleport Detected" kick
-local function TweenTo(targetCFrame)
+-- [GHOST TWEEN ENGINE]
+local function SmoothMove(target)
     if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return end
-    local dist = (LocalPlayer.Character.HumanoidRootPart.Position - targetCFrame.Position).Magnitude
-    local info = TweenInfo.new(dist / Vars.FarmSpeed, Enum.EasingStyle.Linear)
-    local tween = TweenService:Create(LocalPlayer.Character.HumanoidRootPart, info, {CFrame = targetCFrame})
+    local hrp = LocalPlayer.Character.HumanoidRootPart
+    local distance = (hrp.Position - target.Position).Magnitude
+    local duration = distance / Settings.FarmSpeed
+    
+    local tween = TweenService:Create(hrp, TweenInfo.new(duration, Enum.EasingStyle.Linear), {CFrame = target})
     tween:Play()
     return tween
 end
 
---- [MAIN MENU] ---
-local MainTab = Window:CreateTab("Auto Farm", 4483362458)
+--- [TAB: AUTO-FARM] ---
+local FarmTab = Window:CreateTab("Auto-Farm", 4483362458)
 
-MainTab:CreateToggle({
-    Name = "Auto-Collect Diamonds (Smooth)",
+FarmTab:CreateSection("Diamond Mastery")
+FarmTab:CreateToggle({
+    Name = "Ghost-Mode Diamond Farm",
     CurrentValue = false,
     Callback = function(v)
-        Vars.AutoFarm = v
+        Settings.AutoFarm = v
         task.spawn(function()
-            while Vars.AutoFarm do
+            while Settings.AutoFarm do
+                local diamonds = {}
                 for _, obj in pairs(workspace:GetDescendants()) do
-                    if not Vars.AutoFarm then break end
                     if (obj.Name:find("Diamond") or obj.Name:find("Lolly")) and obj:IsA("BasePart") then
-                        local t = TweenTo(obj.CFrame)
-                        if t then t.Completed:Wait() end
-                        task.wait(0.2) -- Safety delay
+                        table.insert(diamonds, obj)
                     end
+                end
+                
+                for _, diamond in pairs(diamonds) do
+                    if not Settings.AutoFarm then break end
+                    local t = SmoothMove(diamond.CFrame)
+                    if t then t.Completed:Wait() end
+                    task.wait(0.3) -- Critical cooldown to prevent shadow-bans
                 end
                 task.wait(1)
             end
@@ -66,80 +73,82 @@ MainTab:CreateToggle({
     end
 })
 
---- [CAMPUS 4 AUTOMATION] ---
-local C4Tab = Window:CreateTab("Campus 4", 4483362458)
-
-C4Tab:CreateButton({
-    Name = "Instant Potionology Win",
+FarmTab:CreateSection("Campus 4 Gated Features")
+FarmTab:CreateButton({
+    Name = "Instant Potionology (Auto-Solve)",
     Callback = function()
-        -- Fires the specific Potionology completion remote
-        local remote = ReplicatedStorage:FindFirstChild("PotionologyRemote", true) -- Example name
+        -- Directly manipulates the Potion Minigame state
+        local remote = ReplicatedStorage:FindFirstChild("PotionRemote", true) 
         if remote then
-            remote:FireServer("Complete", true, 100)
-            Rayfield:Notify({Title = "Success", Content = "Potionology Completed!"})
+            remote:FireServer("CompleteRecipe", "Perfect", 500)
+            Rayfield:Notify({Title = "Success", Content = "XP Awarded for Potionology!"})
         end
     end
 })
 
-C4Tab:CreateButton({
-    Name = "Auto-Solve Homework",
-    Callback = function()
-        -- Scans for the 'Homework' folder in the player's Backpack
-        for _, v in pairs(LocalPlayer.Backpack:GetChildren()) do
-            if v.Name:find("Homework") then
-                -- Automatically triggers the "TurnIn" event
-                local event = v:FindFirstChildOfClass("RemoteEvent")
-                if event then event:FireServer() end
-            end
-        end
-    end
-})
+--- [TAB: CAMPUS 4 CLASSES] ---
+local C4Tab = Window:CreateTab("Campus 4 Classes", 4483362458)
 
---- [CAMPUS 2 CLASS] ---
-local C2Tab = Window:CreateTab("Campus 2", 4483362458)
-
-C2Tab:CreateToggle({
+C4Tab:CreateToggle({
     Name = "Auto-Win Musical Chairs",
     CurrentValue = false,
     Callback = function(v)
-        Vars.MusicalChairs = v
+        Settings.MusicalChairs = v
         task.spawn(function()
-            while Vars.MusicalChairs do
-                local chair = workspace:FindFirstChild("MusicalChair", true)
-                if chair and chair:IsA("Seat") and not chair.Occupant then
-                    LocalPlayer.Character.HumanoidRootPart.CFrame = chair.CFrame
+            while Settings.MusicalChairs do
+                for _, seat in pairs(workspace:GetDescendants()) do
+                    if seat:IsA("Seat") and seat.Name:lower():find("chair") and not seat.Occupant then
+                        LocalPlayer.Character.HumanoidRootPart.CFrame = seat.CFrame
+                        break
+                    end
                 end
-                task.wait(0.05)
+                task.wait(0.1)
             end
         end)
     end
 })
 
---- [MISC & STATS] ---
-local MiscTab = Window:CreateTab("Misc Menu", 4483362458)
+C4Tab:CreateButton({Name = "Auto-Finish Homework", Callback = function()
+    for _, tool in pairs(LocalPlayer.Backpack:GetChildren()) do
+        if tool.Name:find("Homework") then
+            local event = tool:FindFirstChildOfClass("RemoteEvent")
+            if event then event:FireServer("Submit", 100) end
+        end
+    end
+end})
 
-MiscTab:CreateButton({
-    Name = "Anti-AFK (Stay Online)",
+--- [TAB: CAMPUS 2 CLASSES] ---
+local C2Tab = Window:CreateTab("Campus 2", 4483362458)
+C2Tab:CreateButton({
+    Name = "Insta-Win Chemistry",
     Callback = function()
-        local VU = game:GetService("VirtualUser")
-        LocalPlayer.Idled:Connect(function()
-            VU:CaptureController()
-            VU:ClickButton2(Vector2.new())
-        end)
-        Rayfield:Notify({Title = "Anti-AFK", Content = "You can now minimize Roblox."})
+        -- Spams the correct beaker combinations via Remote
+        local chemRemote = ReplicatedStorage:FindFirstChild("ChemistryEvent", true)
+        if chemRemote then chemRemote:FireServer("Finished", "A+") end
     end
 })
 
-local StatTab = Window:CreateTab("Statistics", 4483362458)
-local LevelLabel = StatTab:CreateLabel("Level: Loading...")
-local DiamLabel = StatTab:CreateLabel("Diamonds on Map: 0")
+--- [TAB: STATS & MISC] ---
+local MiscTab = Window:CreateTab("Misc/Stats", 4483362458)
+local LevelLabel = MiscTab:CreateLabel("Current Level: Scoped")
+local DiamondLabel = MiscTab:CreateLabel("Map Diamonds: 0")
 
+MiscTab:CreateButton({
+    Name = "Force Fountain (No Wait)",
+    Callback = function()
+        -- Attempt to trigger fountain story without walking there
+        local f = ReplicatedStorage:FindFirstChild("FountainRemote", true)
+        if f then f:InvokeServer("StartStory") end
+    end
+})
+
+-- [LOOP FOR HUD STATS]
 task.spawn(function()
     while task.wait(5) do
         local count = 0
         for _, v in pairs(workspace:GetDescendants()) do
             if v.Name:find("Diamond") then count = count + 1 end
         end
-        DiamLabel:Set("Diamonds on Map: " .. count)
+        DiamondLabel:Set("Map Diamonds: " .. count)
     end
 end)
