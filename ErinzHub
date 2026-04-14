@@ -1,19 +1,19 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
--- [[ SECURITY & POS DATA ]]
+-- [[ CONFIG ]]
 local AdminKey = "erin01"
 local DeathPos = nil
-local AutoReturnEnabled = true
+local AutoSpawnEnabled = true
 
 local Window = Rayfield:CreateWindow({
-   Name = "Erin's Private | Auto-Return Hub",
-   LoadingTitle = "Initializing Death Anchor...",
+   Name = "Erin's Private | SPTS Mugen Bypass",
+   LoadingTitle = "Bypassing Spawn Screen...",
    LoadingSubtitle = "by NotAmnesia",
    ConfigurationSaving = { Enabled = true, FolderName = "ErinPrivate" },
    KeySystem = true,
    KeySettings = {
       Title = "Private Access",
-      Subtitle = "Instant Respawn System",
+      Subtitle = "Instant Spawn & Return",
       Note = "Key: erin01",
       FileName = "ErinPrivate",
       SaveKey = true,
@@ -24,68 +24,69 @@ local Window = Rayfield:CreateWindow({
 -- SERVICES
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
+local VirtualInputManager = game:GetService("VirtualInputManager")
 
---- [TAB: AUTO-RETURN] ---
+--- [TAB: AUTO-BYPASS] ---
 local MainTab = Window:CreateTab("Automation", 4483362458)
 
 MainTab:CreateToggle({
-    Name = "Auto-Return to Death Spot (1s Delay)",
+    Name = "Auto-Click SPAWN & Return",
     CurrentValue = true,
     Callback = function(v)
-        AutoReturnEnabled = v
-        if v then
-            Rayfield:Notify({Title = "System Active", Content = "Anchor locked. You will now auto-return upon death."})
+        AutoSpawnEnabled = v
+    end
+})
+
+-- [[ THE BYPASS ENGINE ]]
+
+-- Function to find and click the "SPAWN" button
+local function ForceSpawn()
+    local playerGui = LocalPlayer:WaitForChild("PlayerGui")
+    -- We search for the button based on the text "SPAWN" seen in your screenshot
+    for _, gui in pairs(playerGui:GetDescendants()) do
+        if gui:IsA("TextButton") and gui.Text:upper():find("SPAWN") and gui.Visible then
+            -- Simulate a physical click on the center of the button
+            local x, y = gui.AbsolutePosition.X + (gui.AbsoluteSize.X / 2), gui.AbsolutePosition.Y + (gui.AbsoluteSize.Y / 2)
+            VirtualInputManager:SendMouseButtonEvent(x, y, 0, true, game, 0)
+            task.wait(0.1)
+            VirtualInputManager:SendMouseButtonEvent(x, y, 0, false, game, 0)
+            return true
         end
     end
-})
-
-MainTab:CreateSection("Manual Controls")
-MainTab:CreateButton({
-    Name = "Reset Current Anchor",
-    Callback = function() DeathPos = nil end
-})
-
--- [[ THE ENGINE ]]
--- Function to handle the teleport logic
-local function OnCharacterAdded(character)
-    if not AutoReturnEnabled or not DeathPos then return end
-    
-    -- Wait exactly 1 second after respawning
-    task.wait(1)
-    
-    local hrp = character:WaitForChild("HumanoidRootPart", 5)
-    if hrp then
-        hrp.CFrame = DeathPos
-        Rayfield:Notify({Title = "Returned", Content = "Successfully snapped back to your last spot."})
-    end
+    return false
 end
 
--- Function to monitor health and save position
+-- Monitor for Death and Respawn
 local function MonitorLife()
     LocalPlayer.CharacterAdded:Connect(function(char)
-        -- Connect the return logic to the new character
-        OnCharacterAdded(char)
+        if not AutoSpawnEnabled then return end
         
+        -- 1. Check if the "SPAWN" screen is up and click it
+        task.spawn(function()
+            local clicked = false
+            repeat
+                clicked = ForceSpawn()
+                task.wait(0.5)
+            until clicked or not AutoSpawnEnabled
+        end)
+
+        -- 2. Return to last spot after clicking spawn
+        task.wait(1.2) -- Extra buffer for SPTS loading
+        if DeathPos then
+            local hrp = char:WaitForChild("HumanoidRootPart", 5)
+            if hrp then 
+                hrp.CFrame = DeathPos 
+            end
+        end
+
+        -- 3. Watch for next death
         local hum = char:WaitForChild("Humanoid")
         hum.Died:Connect(function()
             if char:FindFirstChild("HumanoidRootPart") then
-                -- Log the position the EXACT moment you die
                 DeathPos = char.HumanoidRootPart.CFrame
             end
         end)
     end)
-    
-    -- Handle initial character if already spawned
-    if LocalPlayer.Character then
-        local hum = LocalPlayer.Character:FindFirstChild("Humanoid")
-        if hum then
-            hum.Died:Connect(function()
-                if LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                    DeathPos = LocalPlayer.Character.HumanoidRootPart.CFrame
-                end
-            end)
-        end
-    end
 end
 
 task.spawn(MonitorLife)
