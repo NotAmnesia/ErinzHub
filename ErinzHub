@@ -1,6 +1,6 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
--- [[ HWID & USER SECURITY ]]
+--[[ HWID & USER SECURITY ]]
 local HttpService = game:GetService("HttpService")
 local Player = game.Players.LocalPlayer
 local DeviceID = game:GetService("RbxAnalyticsService"):GetClientId()
