@@ -2,150 +2,61 @@ local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
    Name = "Erin's Universal Hub",
-   LoadingTitle = "Loading Erin's Hub...",
+   LoadingTitle = "Checking Game Version...",
    LoadingSubtitle = "by NotAmnesia",
-   ConfigurationSaving = {
-      Enabled = true,
-      FolderName = "ErinHubConfigs",
-      FileName = "MainConfig"
-   }
+   ConfigurationSaving = { Enabled = true, FolderName = "ErinHub" }
 })
 
----
---- 1. UNIVERSAL TAB (Loads in every single game)
----
+-- 1. UNIVERSAL TAB
 local UniversalTab = Window:CreateTab("Universal", 4483362458)
-
-UniversalTab:CreateSection("Admin & ESP")
 UniversalTab:CreateButton({
-   Name = "Infinite Yield (Best Admin)",
+   Name = "Infinite Yield",
    Callback = function()
       loadstring(game:HttpGet('https://raw.githubusercontent.com/Edgeiy/infiniteyield/master/source'))()
    end,
 })
 
-UniversalTab:CreateButton({
-   Name = "Unnamed ESP (See Players)",
-   Callback = function()
-      loadstring(game:HttpGet('https://raw.githubusercontent.com/ic3w0lf22/Unnamed-ESP/master/Main.lua'))()
-   end,
-})
-
-UniversalTab:CreateSection("Player Modifiers")
-UniversalTab:CreateSlider({
-   Name = "WalkSpeed",
-   Range = {16, 300},
-   Increment = 1,
-   CurrentValue = 16,
-   Callback = function(Value)
-      game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = Value
-   end,
-})
-
-UniversalTab:CreateSlider({
-   Name = "JumpPower",
-   Range = {50, 500},
-   Increment = 1,
-   CurrentValue = 50,
-   Callback = function(Value)
-      game.Players.LocalPlayer.Character.Humanoid.JumpPower = Value
-   end,
-})
-
----
---- 2. GAME DETECTION (Loads only if in the specific game)
----
+-- 2. GAME DETECTION (Fixed for all Blox Fruit Seas)
 local PlaceId = game.PlaceId
 
+-- All Blox Fruits IDs: 2753915549 (Sea 1), 4442272186 (Sea 2), 7449423635 (Sea 3)
 if PlaceId == 2753915549 or PlaceId == 4442272186 or PlaceId == 7449423635 then 
-    -- BLOX FRUITS (Supports Sea 1, 2, and 3)
-    local GameTab = Window:CreateTab("Blox Fruits", 4483362458)
-    GameTab:CreateSection("Top Hubs")
+    local BFTab = Window:CreateTab("Blox Fruits", 4483362458)
+    BFTab:CreateSection("Working Hubs")
     
-    GameTab:CreateButton({
+    BFTab:CreateButton({
         Name = "Hoho Hub",
         Callback = function()
             loadstring(game:HttpGet('https://raw.githubusercontent.com/acsu123/HOHO_HUB/main/Loading_v2'))()
         end,
     })
-    
-    GameTab:CreateButton({
+
+    BFTab:CreateButton({
         Name = "Redz Hub",
         Callback = function()
             loadstring(game:HttpGet("https://raw.githubusercontent.com/REDzHUB/BloxFruits/main/redz9999"))()
         end,
     })
 
-elseif PlaceId == 142823684 then 
-    -- MURDER MYSTERY 2
-    local GameTab = Window:CreateTab("Murder Mystery 2", 4483362458)
-    GameTab:CreateSection("Best MM2 Scripts")
+    BFTab:CreateButton({
+        Name = "Alchemy Hub",
+        Callback = function()
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/DeSeSeZ/p/main/AlchemyHub.lua"))()
+        end,
+    })
 
-    GameTab:CreateButton({
+elseif PlaceId == 142823684 then -- MM2
+    local MM2Tab = Window:CreateTab("MM2", 4483362458)
+    MM2Tab:CreateButton({
         Name = "Vynixius MM2",
         Callback = function()
             loadstring(game:HttpGet("https://raw.githubusercontent.com/RegularVynixu/Vynixius/main/Murder%20Mystery%202/Script.lua"))()
         end,
     })
-    
-    GameTab:CreateButton({
-        Name = "Eclipse Hub",
-        Callback = function()
-            loadstring(game:HttpGet("https://raw.githubusercontent.com/Doggo-cryto/EclipseMM2/master/Script"))()
-        end,
-    })
-
-elseif PlaceId == 8737899170 or PlaceId == 16498369169 then 
-    -- PET SIMULATOR 99
-    local GameTab = Window:CreateTab("Pet Sim 99", 4483362458)
-    GameTab:CreateSection("Auto Farms")
-
-    GameTab:CreateButton({
-        Name = "Redz Hub (PS99)",
-        Callback = function()
-            loadstring(game:HttpGet("https://raw.githubusercontent.com/REDzHUB/PetSimulator99/main/redz99.lua"))()
-        end,
-    })
-    
-    GameTab:CreateButton({
-        Name = "Zap Hub",
-        Callback = function()
-            loadstring(game:HttpGet('https://raw.githubusercontent.com/zaphub/main/main'))()
-        end,
-    })
-
-elseif PlaceId == 4924922222 then 
-    -- BROOKHAVEN RP
-    local GameTab = Window:CreateTab("Brookhaven RP", 4483362458)
-    GameTab:CreateSection("Trolling & Utilities")
-
-    GameTab:CreateButton({
-        Name = "Ice Hub (Brookhaven)",
-        Callback = function()
-            loadstring(game:HttpGet("https://raw.githubusercontent.com/IceOghi/IceHub/main/Brookhaven"))()
-        end,
-    })
-    
-    GameTab:CreateButton({
-        Name = "SanderX / Voidz Hub",
-        Callback = function()
-            loadstring(game:HttpGet("https://raw.githubusercontent.com/sander111221/SanderX/main/SanderX.lua"))()
-        end,
-    })
 
 else
-    -- IF THE GAME IS NOT IN THE LIST ABOVE
-    local InfoTab = Window:CreateTab("Game Info", 4483362458)
-    InfoTab:CreateLabel("Current Game ID: " .. PlaceId)
-    InfoTab:CreateParagraph({
-        Title = "Game Not Supported", 
-        Content = "Erin's Hub does not have a dedicated tab for this game yet. Please use the Universal Tab for basic exploits!"
-    })
+    -- Show this if the game ID isn't matched
+    local DebugTab = Window:CreateTab("Game Info", 4483362458)
+    DebugTab:CreateLabel("Unsupported Game Detected")
+    DebugTab:CreateLabel("Current ID: " .. PlaceId)
 end
-
-Rayfield:Notify({
-   Title = "Welcome to Erin's Hub!",
-   Content = "Hub successfully loaded.",
-   Duration = 5,
-   Image = 4483362458,
-})
