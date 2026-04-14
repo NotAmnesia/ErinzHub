@@ -3,90 +3,82 @@ local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 -- [[ CONFIG ]]
 local AdminKey = "erin01"
 local DeathPos = nil
-local TrainingSpeed = 0.1 -- Safe delay to prevent kicks
+local LocalPlayer = game.Players.LocalPlayer
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Window = Rayfield:CreateWindow({
-   Name = "Erin's Private | SPTE Stealth",
-   LoadingTitle = "Bypassing Rate Limits...",
-   LoadingSubtitle = "by NotAmnesia",
-   ConfigurationSaving = { Enabled = true, FolderName = "ErinSPTE_Stealth" },
+   Name = "SPTE | Executive Dev-Panel",
+   LoadingTitle = "Infiltrating SPTE Database...",
    KeySystem = true,
    KeySettings = {
-      Title = "Executive Access",
-      Subtitle = "No-Kick Training",
+      Title = "Owner Access",
       Note = "Key: erin01",
-      FileName = "ErinKey",
-      SaveKey = true,
       Key = {AdminKey}
    }
 })
 
--- SERVICES
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local LocalPlayer = game.Players.LocalPlayer
-local MarketplaceService = game:GetService("MarketplaceService")
+--- [TAB 1: PRODUCT MANIPULATOR] ---
+local ShopTab = Window:CreateTab("Dev-Products", 4483362458)
 
---- [TAB: BYPASS & SHOP] ---
-local ShopTab = Window:CreateTab("Shop Bypass", 4483362458)
+ShopTab:CreateSection("Force-Trigger Purchase Rewards")
 
-ShopTab:CreateButton({
-    Name = "Unlock All Gamepasses (Stealth Hook)",
+local Products = {
+    ["1k Tokens"] = "AddTokens_1k",
+    ["10k Tokens"] = "AddTokens_10k",
+    ["Infinite Aura"] = "GrantAura_Pass",
+    ["2x All Stats"] = "DoubleStats_Product"
+}
+
+for Name, Remote in pairs(Products) do
+    ShopTab:CreateButton({
+        Name = "Exploit: " .. Name,
+        Callback = function()
+            -- We search for the specific reward remote that fires AFTER a purchase
+            local r = ReplicatedStorage:FindFirstChild(Remote, true)
+            if r then
+                r:FireServer()
+                Rayfield:Notify({Title = "Remote Fired", Content = "Attempting to force reward for " .. Name})
+            else
+                Rayfield:Notify({Title = "Error", Content = "Remote not found in this session."})
+            end
+        end
+    })
+end
+
+--- [TAB 2: OWNER ADMIN PANEL] ---
+local AdminTab = Window:CreateTab("Admin Panel", 4483362458)
+
+AdminTab:CreateButton({
+    Name = "Search for Hidden Owner Panel",
     Callback = function()
-        -- Hooks the actual Marketplace check so the server thinks you bought them
-        local mt = getrawmetatable(game)
-        local old = mt.__namecall
-        setreadonly(mt, false)
+        -- Scans PlayerGui for hidden Admin/Owner Menus
+        local found = false
+        for _, gui in pairs(LocalPlayer.PlayerGui:GetChildren()) do
+            if gui.Name:lower():find("admin") or gui.Name:lower():find("owner") or gui.Name:lower():find("mod") then
+                gui.Enabled = true
+                for _, frame in pairs(gui:GetDescendants()) do if frame:IsA("Frame") then frame.Visible = true end end
+                found = true
+            end
+        end
         
-        mt.__namecall = newcclosure(function(self, ...)
-            local method = getnamecallmethod()
-            if method == "UserOwnsGamePassAsync" or method == "PlayerOwnsAsset" then
-                return true
+        -- Scans for Admin Remotes
+        for _, v in pairs(ReplicatedStorage:GetDescendants()) do
+            if v:IsA("RemoteEvent") and (v.Name:lower():find("admin") or v.Name:lower():find("owner")) then
+                print("FOUND ADMIN REMOTE: " .. v.Name)
+                found = true
             end
-            return old(self, ...)
-        end)
-        setreadonly(mt, true)
-        Rayfield:Notify({Title = "Success", Content = "Gamepasses Spoofed! Check your skills menu."})
+        end
+        
+        if found then
+            Rayfield:Notify({Title = "Success", Content = "Found potential Admin assets. Check your screen/console!"})
+        else
+            Rayfield:Notify({Title = "Not Found", Content = "Owner panel is likely server-locked."})
+        end
     end
 })
 
---- [TAB: SAFE TRAINING] ---
-local TrainTab = Window:CreateTab("Safe Train", 4483362458)
-
-TrainTab:CreateToggle({
-    Name = "Smart-Train (All Stats)",
-    CurrentValue = false,
-    Callback = function(v)
-        _G.SmartTrain = v
-        task.spawn(function()
-            local remotes = {}
-            -- Find remotes once to save memory
-            for _, r in pairs(ReplicatedStorage:GetDescendants()) do
-                if r:IsA("RemoteEvent") and (r.Name:find("Train") or r.Name:find("Add")) then
-                    table.insert(remotes, r)
-                end
-            end
-            
-            while _G.SmartTrain do
-                for _, r in pairs(remotes) do
-                    if not _G.SmartTrain then break end
-                    r:FireServer()
-                    task.wait(TrainingSpeed) -- This delay prevents the kick
-                end
-            end
-        end)
-    end
-})
-
-TrainTab:CreateSlider({
-    Name = "Training Speed (Lower = Faster)",
-    Range = {0.05, 0.5},
-    Increment = 0.01,
-    CurrentValue = 0.1,
-    Callback = function(v) TrainingSpeed = v end
-})
-
---- [TAB: THE ANCHOR] ---
-local AfkTab = Window:CreateTab("AFK Return", 4483362458)
+--- [TAB 3: AFK SECURITY] ---
+local AfkTab = Window:CreateTab("AFK Anchor", 4483362458)
 
 AfkTab:CreateToggle({
     Name = "Auto-Spawn & Return",
@@ -94,14 +86,14 @@ AfkTab:CreateToggle({
     Callback = function(v) _G.AutoRespawn = v end
 })
 
--- [[ ENGINE ]]
+-- [[ THE ENGINE ]]
 local function ForceSpawn()
     local pGui = LocalPlayer:WaitForChild("PlayerGui")
     for _, v in pairs(pGui:GetDescendants()) do
         if v:IsA("TextButton") and v.Text:upper():find("SPAWN") and v.Visible then
             local x, y = v.AbsolutePosition.X + (v.AbsoluteSize.X / 2), v.AbsolutePosition.Y + (v.AbsoluteSize.Y / 2)
             game:GetService("VirtualInputManager"):SendMouseButtonEvent(x, y, 0, true, game, 0)
-            task.wait(0.1)
+            task.wait(0.05)
             game:GetService("VirtualInputManager"):SendMouseButtonEvent(x, y, 0, false, game, 0)
         end
     end
