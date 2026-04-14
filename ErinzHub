@@ -2,46 +2,57 @@ local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
    Name = "Erin's Universal Hub",
-   LoadingTitle = "Checking Game Version...",
+   LoadingTitle = "Securing Connections...",
    LoadingSubtitle = "by NotAmnesia",
    ConfigurationSaving = { Enabled = true, FolderName = "ErinHub" }
 })
+
+-- Helper function to load scripts without crashing the menu
+local function SafeLoad(name, url)
+    local success, err = pcall(function()
+        loadstring(game:HttpGet(url))()
+    end)
+    if not success then
+        Rayfield:Notify({
+            Title = "Load Error",
+            Content = "Failed to load " .. name .. ". The script might be patched.",
+            Duration = 5,
+            Image = 4483362458,
+        })
+        warn("Error loading " .. name .. ": " .. tostring(err))
+    end
+end
 
 -- 1. UNIVERSAL TAB
 local UniversalTab = Window:CreateTab("Universal", 4483362458)
 UniversalTab:CreateButton({
    Name = "Infinite Yield",
-   Callback = function()
-      loadstring(game:HttpGet('https://raw.githubusercontent.com/Edgeiy/infiniteyield/master/source'))()
-   end,
+   Callback = function() SafeLoad("Infinite Yield", "https://raw.githubusercontent.com/Edgeiy/infiniteyield/master/source") end,
 })
 
--- 2. GAME DETECTION (Fixed for all Blox Fruit Seas)
+-- 2. BLOX FRUITS (Updated Links)
 local PlaceId = game.PlaceId
-
--- All Blox Fruits IDs: 2753915549 (Sea 1), 4442272186 (Sea 2), 7449423635 (Sea 3)
 if PlaceId == 2753915549 or PlaceId == 4442272186 or PlaceId == 7449423635 then 
     local BFTab = Window:CreateTab("Blox Fruits", 4483362458)
-    BFTab:CreateSection("Working Hubs")
     
     BFTab:CreateButton({
-        Name = "Hoho Hub",
-        Callback = function()
-            loadstring(game:HttpGet('https://raw.githubusercontent.com/acsu123/HOHO_HUB/main/Loading_v2'))()
+        Name = "Hoho Hub (V3)",
+        Callback = function() 
+            SafeLoad("Hoho Hub", "https://raw.githubusercontent.com/acsu123/HOHO_HUB/main/Loading_v2") 
         end,
     })
 
     BFTab:CreateButton({
-        Name = "Redz Hub",
-        Callback = function()
-            loadstring(game:HttpGet("https://raw.githubusercontent.com/REDzHUB/BloxFruits/main/redz9999"))()
+        Name = "Redz Hub (Fastest)",
+        Callback = function() 
+            SafeLoad("Redz Hub", "https://raw.githubusercontent.com/REDzHUB/BloxFruits/main/redz9999") 
         end,
     })
 
     BFTab:CreateButton({
-        Name = "Alchemy Hub",
+        Name = "W-Azure (Best Visuals)",
         Callback = function()
-            loadstring(game:HttpGet("https://raw.githubusercontent.com/DeSeSeZ/p/main/AlchemyHub.lua"))()
+            SafeLoad("W-Azure", "https://api.luarmor.net/files/v3/loaders/3b2169cf5333c0ff885d1dd92084d207.lua")
         end,
     })
 
@@ -49,14 +60,12 @@ elseif PlaceId == 142823684 then -- MM2
     local MM2Tab = Window:CreateTab("MM2", 4483362458)
     MM2Tab:CreateButton({
         Name = "Vynixius MM2",
-        Callback = function()
-            loadstring(game:HttpGet("https://raw.githubusercontent.com/RegularVynixu/Vynixius/main/Murder%20Mystery%202/Script.lua"))()
+        Callback = function() 
+            SafeLoad("Vynixius", "https://raw.githubusercontent.com/RegularVynixu/Vynixius/main/Murder%20Mystery%202/Script.lua") 
         end,
     })
 
 else
-    -- Show this if the game ID isn't matched
     local DebugTab = Window:CreateTab("Game Info", 4483362458)
-    DebugTab:CreateLabel("Unsupported Game Detected")
     DebugTab:CreateLabel("Current ID: " .. PlaceId)
 end
