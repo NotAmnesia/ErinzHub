@@ -1,45 +1,151 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "Elite Multi-Game Hub",
-   LoadingTitle = "Detecting Game...",
+   Name = "Erin's Universal Hub",
+   LoadingTitle = "Loading Erin's Hub...",
    LoadingSubtitle = "by NotAmnesia",
-   ConfigurationSaving = { Enabled = true, FolderName = "EliteHubConfigs" }
+   ConfigurationSaving = {
+      Enabled = true,
+      FolderName = "ErinHubConfigs",
+      FileName = "MainConfig"
+   }
 })
 
--- UNIVERSAL TAB (Features for EVERY game)
-local MainTab = Window:CreateTab("Universal", 4483362458)
-MainTab:CreateButton({
-   Name = "Infinite Yield",
+---
+--- 1. UNIVERSAL TAB (Loads in every single game)
+---
+local UniversalTab = Window:CreateTab("Universal", 4483362458)
+
+UniversalTab:CreateSection("Admin & ESP")
+UniversalTab:CreateButton({
+   Name = "Infinite Yield (Best Admin)",
    Callback = function()
       loadstring(game:HttpGet('https://raw.githubusercontent.com/Edgeiy/infiniteyield/master/source'))()
    end,
 })
 
--- GAME DETECTION SYSTEM
--- You can add hundreds of these "elseif" blocks!
-if game.PlaceId == 155615604 then -- Prison Life
-    local GameTab = Window:CreateTab("Prison Life", 4483362458)
-    GameTab:CreateLabel("Prison Life Mod Loaded")
-    -- Insert Prison Life specific buttons here
+UniversalTab:CreateButton({
+   Name = "Unnamed ESP (See Players)",
+   Callback = function()
+      loadstring(game:HttpGet('https://raw.githubusercontent.com/ic3w0lf22/Unnamed-ESP/master/Main.lua'))()
+   end,
+})
 
-elseif game.PlaceId == 2753915549 then -- Blox Fruits
+UniversalTab:CreateSection("Player Modifiers")
+UniversalTab:CreateSlider({
+   Name = "WalkSpeed",
+   Range = {16, 300},
+   Increment = 1,
+   CurrentValue = 16,
+   Callback = function(Value)
+      game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = Value
+   end,
+})
+
+UniversalTab:CreateSlider({
+   Name = "JumpPower",
+   Range = {50, 500},
+   Increment = 1,
+   CurrentValue = 50,
+   Callback = function(Value)
+      game.Players.LocalPlayer.Character.Humanoid.JumpPower = Value
+   end,
+})
+
+---
+--- 2. GAME DETECTION (Loads only if in the specific game)
+---
+local PlaceId = game.PlaceId
+
+if PlaceId == 2753915549 or PlaceId == 4442272186 or PlaceId == 7449423635 then 
+    -- BLOX FRUITS (Supports Sea 1, 2, and 3)
     local GameTab = Window:CreateTab("Blox Fruits", 4483362458)
-    -- You can even load a whole separate script file for this game:
-    -- loadstring(game:HttpGet("https://raw.githubusercontent.com/NotAmnesia/hub.lua/main/games/bloxfruits.lua"))()
-
-elseif game.PlaceId == 189707 then -- Natural Disaster Survival
-    local GameTab = Window:CreateTab("Natural Disaster", 4483362458)
+    GameTab:CreateSection("Top Hubs")
+    
     GameTab:CreateButton({
-        Name = "Teleport to Island",
+        Name = "Hoho Hub",
         Callback = function()
-            game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(-2, 47, 0)
+            loadstring(game:HttpGet('https://raw.githubusercontent.com/acsu123/HOHO_HUB/main/Loading_v2'))()
+        end,
+    })
+    
+    GameTab:CreateButton({
+        Name = "Redz Hub",
+        Callback = function()
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/REDzHUB/BloxFruits/main/redz9999"))()
+        end,
+    })
+
+elseif PlaceId == 142823684 then 
+    -- MURDER MYSTERY 2
+    local GameTab = Window:CreateTab("Murder Mystery 2", 4483362458)
+    GameTab:CreateSection("Best MM2 Scripts")
+
+    GameTab:CreateButton({
+        Name = "Vynixius MM2",
+        Callback = function()
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/RegularVynixu/Vynixius/main/Murder%20Mystery%202/Script.lua"))()
+        end,
+    })
+    
+    GameTab:CreateButton({
+        Name = "Eclipse Hub",
+        Callback = function()
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/Doggo-cryto/EclipseMM2/master/Script"))()
+        end,
+    })
+
+elseif PlaceId == 8737899170 or PlaceId == 16498369169 then 
+    -- PET SIMULATOR 99
+    local GameTab = Window:CreateTab("Pet Sim 99", 4483362458)
+    GameTab:CreateSection("Auto Farms")
+
+    GameTab:CreateButton({
+        Name = "Redz Hub (PS99)",
+        Callback = function()
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/REDzHUB/PetSimulator99/main/redz99.lua"))()
+        end,
+    })
+    
+    GameTab:CreateButton({
+        Name = "Zap Hub",
+        Callback = function()
+            loadstring(game:HttpGet('https://raw.githubusercontent.com/zaphub/main/main'))()
+        end,
+    })
+
+elseif PlaceId == 4924922222 then 
+    -- BROOKHAVEN RP
+    local GameTab = Window:CreateTab("Brookhaven RP", 4483362458)
+    GameTab:CreateSection("Trolling & Utilities")
+
+    GameTab:CreateButton({
+        Name = "Ice Hub (Brookhaven)",
+        Callback = function()
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/IceOghi/IceHub/main/Brookhaven"))()
+        end,
+    })
+    
+    GameTab:CreateButton({
+        Name = "SanderX / Voidz Hub",
+        Callback = function()
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/sander111221/SanderX/main/SanderX.lua"))()
         end,
     })
 
 else
-    -- If the game isn't on your list yet
-    local UnknownTab = Window:CreateTab("Unsupported", 4483362458)
-    UnknownTab:CreateLabel("This game is not yet in the Hub.")
-    UnknownTab:CreateParagraph({Title = "Notice", Content = "Only Universal features are available."})
+    -- IF THE GAME IS NOT IN THE LIST ABOVE
+    local InfoTab = Window:CreateTab("Game Info", 4483362458)
+    InfoTab:CreateLabel("Current Game ID: " .. PlaceId)
+    InfoTab:CreateParagraph({
+        Title = "Game Not Supported", 
+        Content = "Erin's Hub does not have a dedicated tab for this game yet. Please use the Universal Tab for basic exploits!"
+    })
 end
+
+Rayfield:Notify({
+   Title = "Welcome to Erin's Hub!",
+   Content = "Hub successfully loaded.",
+   Duration = 5,
+   Image = 4483362458,
+})
