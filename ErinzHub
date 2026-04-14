@@ -1,71 +1,143 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "Erin's Universal Hub",
-   LoadingTitle = "Securing Connections...",
+   Name = "Erin's Universal Combat",
+   LoadingTitle = "Initializing Aimbot Systems...",
    LoadingSubtitle = "by NotAmnesia",
-   ConfigurationSaving = { Enabled = true, FolderName = "ErinHub" }
+   ConfigurationSaving = { Enabled = true, FolderName = "ErinCombat" }
 })
 
--- Helper function to load scripts without crashing the menu
-local function SafeLoad(name, url)
-    local success, err = pcall(function()
-        loadstring(game:HttpGet(url))()
-    end)
-    if not success then
-        Rayfield:Notify({
-            Title = "Load Error",
-            Content = "Failed to load " .. name .. ". The script might be patched.",
-            Duration = 5,
-            Image = 4483362458,
-        })
-        warn("Error loading " .. name .. ": " .. tostring(err))
+-- VARIABLES
+local Camera = workspace.CurrentCamera
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+
+local AimbotSettings = {
+    Enabled = false,
+    TeamCheck = false,
+    AliveCheck = true,
+    WallCheck = false,
+    Sensitivity = 0.2, -- Lower is smoother/more "legit"
+    FieldOfView = 150,
+    AimPart = "Head"
+}
+
+-- FOV CIRCLE
+local FOVCircle = Drawing.new("Circle")
+FOVCircle.Thickness = 1
+FOVCircle.NumSides = 60
+FOVCircle.Radius = AimbotSettings.FieldOfView
+FOVCircle.Filled = false
+FOVCircle.Visible = false
+FOVCircle.Color = Color3.fromRGB(255, 255, 255)
+
+-- AIMBOT FUNCTION
+local function GetClosestPlayer()
+    local MaximumDistance = AimbotSettings.FieldOfView
+    local Target = nil
+
+    for _, v in pairs(Players:GetPlayers()) do
+        if v ~= LocalPlayer and v.Character and v.Character:FindFirstChild(AimbotSettings.AimPart) then
+            if AimbotSettings.TeamCheck and v.Team == LocalPlayer.Team then continue end
+            if AimbotSettings.AliveCheck and v.Character:FindFirstChild("Humanoid") and v.Character.Humanoid.Health <= 0 then continue end
+            
+            local ScreenPoint = Camera:WorldToScreenPoint(v.Character[AimbotSettings.AimPart].Position)
+            local VectorDistance = (Vector2.new(ScreenPoint.X, ScreenPoint.Y) - Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)).Magnitude
+            
+            if VectorDistance < MaximumDistance then
+                if AimbotSettings.WallCheck then
+                    local Ray = Ray.new(Camera.CFrame.Position, (v.Character[AimbotSettings.AimPart].Position - Camera.CFrame.Position).Unit * 500)
+                    local Hit = workspace:FindPartOnRayWithIgnoreList(Ray, {LocalPlayer.Character})
+                    if Hit and Hit:IsDescendantOf(v.Character) then
+                        Target = v
+                        MaximumDistance = VectorDistance
+                    end
+                else
+                    Target = v
+                    MaximumDistance = VectorDistance
+                end
+            end
+        end
     end
+    return Target
 end
 
--- 1. UNIVERSAL TAB
-local UniversalTab = Window:CreateTab("Universal", 4483362458)
-UniversalTab:CreateButton({
-   Name = "Infinite Yield",
-   Callback = function() SafeLoad("Infinite Yield", "https://raw.githubusercontent.com/Edgeiy/infiniteyield/master/source") end,
+-- MAIN LOOP
+RunService.RenderStepped:Connect(function()
+    FOVCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+    FOVCircle.Radius = AimbotSettings.FieldOfView
+    
+    if AimbotSettings.Enabled then
+        local Target = GetClosestPlayer()
+        if Target then
+            Camera.CFrame = Camera.CFrame:Lerp(CFrame.new(Camera.CFrame.Position, Target.Character[AimbotSettings.AimPart].Position), AimbotSettings.Sensitivity)
+        end
+    end
+end)
+
+---
+--- TABS
+---
+
+local AimTab = Window:CreateTab("Aimbot", 4483362458)
+
+AimTab:CreateToggle({
+   Name = "Enable Aimbot",
+   CurrentValue = false,
+   Callback = function(Value) AimbotSettings.Enabled = Value end,
 })
 
--- 2. BLOX FRUITS (Updated Links)
-local PlaceId = game.PlaceId
-if PlaceId == 2753915549 or PlaceId == 4442272186 or PlaceId == 7449423635 then 
-    local BFTab = Window:CreateTab("Blox Fruits", 4483362458)
-    
-    BFTab:CreateButton({
-        Name = "Hoho Hub (V3)",
-        Callback = function() 
-            SafeLoad("Hoho Hub", "https://raw.githubusercontent.com/acsu123/HOHO_HUB/main/Loading_v2") 
-        end,
-    })
+AimTab:CreateToggle({
+   Name = "Show FOV Circle",
+   CurrentValue = false,
+   Callback = function(Value) FOVCircle.Visible = Value end,
+})
 
-    BFTab:CreateButton({
-        Name = "Redz Hub (Fastest)",
-        Callback = function() 
-            SafeLoad("Redz Hub", "https://raw.githubusercontent.com/REDzHUB/BloxFruits/main/redz9999") 
-        end,
-    })
+AimTab:CreateSlider({
+   Name = "FOV Size",
+   Range = {50, 800},
+   Increment = 10,
+   CurrentValue = 150,
+   Callback = function(Value) AimbotSettings.FieldOfView = Value end,
+})
 
-    BFTab:CreateButton({
-        Name = "W-Azure (Best Visuals)",
-        Callback = function()
-            SafeLoad("W-Azure", "https://api.luarmor.net/files/v3/loaders/3b2169cf5333c0ff885d1dd92084d207.lua")
-        end,
-    })
+AimTab:CreateDropdown({
+   Name = "Aim Part",
+   Options = {"Head", "UpperTorso", "HumanoidRootPart"},
+   CurrentOption = "Head",
+   Callback = function(Option) AimbotSettings.AimPart = Option end,
+})
 
-elseif PlaceId == 142823684 then -- MM2
-    local MM2Tab = Window:CreateTab("MM2", 4483362458)
-    MM2Tab:CreateButton({
-        Name = "Vynixius MM2",
-        Callback = function() 
-            SafeLoad("Vynixius", "https://raw.githubusercontent.com/RegularVynixu/Vynixius/main/Murder%20Mystery%202/Script.lua") 
-        end,
-    })
+AimTab:CreateToggle({
+   Name = "Team Check",
+   CurrentValue = false,
+   Callback = function(Value) AimbotSettings.TeamCheck = Value end,
+})
 
-else
-    local DebugTab = Window:CreateTab("Game Info", 4483362458)
-    DebugTab:CreateLabel("Current ID: " .. PlaceId)
-end
+local ESPTab = Window:CreateTab("ESP/Visuals", 4483362458)
+
+ESPTab:CreateButton({
+   Name = "Load Unnamed ESP (All-In-One)",
+   Callback = function()
+      loadstring(game:HttpGet('https://raw.githubusercontent.com/ic3w0lf22/Unnamed-ESP/master/Main.lua'))()
+   end,
+})
+
+ESPTab:CreateButton({
+   Name = "Fullbright",
+   Callback = function()
+      game.Lighting.Brightness = 2
+      game.Lighting.ClockTime = 14
+      game.Lighting.FogEnd = 100000
+      game.Lighting.GlobalShadows = false
+   end,
+})
+
+local MiscTab = Window:CreateTab("Misc", 4483362458)
+MiscTab:CreateButton({
+    Name = "Infinite Yield",
+    Callback = function()
+        loadstring(game:HttpGet('https://raw.githubusercontent.com/Edgeiy/infiniteyield/master/source'))()
+    end,
+})
