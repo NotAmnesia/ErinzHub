@@ -1,67 +1,75 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "SPTE | Mission & Rewards Hub",
-   LoadingTitle = "Hijacking Storyline...",
+   Name = "SPTE | Mission Bypass V2",
+   LoadingTitle = "Spoofing Requirements...",
    KeySystem = true,
-   KeySettings = {
-      Title = "Executive Access",
-      Note = "Key: erin01",
-      Key = {"erin01"}
-   }
+   KeySettings = { Title = "Executive Access", Note = "Key: erin01", Key = {"erin01"} }
 })
 
--- [[ THE MISSION EXPLOIT ]]
-local MissionTab = Window:CreateTab("Quests", 4483362458)
+-- [[ THE BYPASS ENGINE ]]
+local function ForceSkip()
+    local LP = game.Players.LocalPlayer
+    
+    -- STEP 1: Spoof the Quest Data Folder (Client-Side)
+    -- This tricks the local script into thinking you've met the goals
+    local qFolder = LP:FindFirstChild("Quests") or LP:FindFirstChild("QuestData")
+    if qFolder then
+        for _, val in pairs(qFolder:GetDescendants()) do
+            if val:IsA("NumberValue") or val:IsA("IntValue") then
+                val.Value = 999999999 -- Spoofing the "Requirement Met" state
+            end
+        end
+    end
 
-MissionTab:CreateToggle({
-    Name = "Auto-Skip Missions (Massive Rewards)",
+    -- STEP 2: Fire the "NextMission" signal
+    local args = {
+        [1] = {
+            [1] = "NextMission",
+            [2] = "Main"
+        }
+    }
+    game:GetService("ReplicatedStorage").RemoteEvent:FireServer(unpack(args))
+    
+    -- STEP 3: Heartbeat Sync
+    game:GetService("ReplicatedStorage").PingEvent:FireServer()
+end
+
+--- [TAB: QUEST EXPLOIT] ---
+local QuestTab = Window:CreateTab("Quest Bypass", 4483362458)
+
+QuestTab:CreateButton({
+    Name = "Force Skip Current Mission",
+    Callback = function()
+        ForceSkip()
+        Rayfield:Notify({Title = "Sent", Content = "Spoofed requirements and requested next mission."})
+    end
+})
+
+QuestTab:CreateToggle({
+    Name = "Infinite Reward Loop",
     CurrentValue = false,
     Callback = function(v)
-        _G.AutoMission = v
+        _G.LoopQuest = v
         task.spawn(function()
-            while _G.AutoMission do
-                -- The remote you found
-                local args = {
-                    [1] = {
-                        [1] = "NextMission",
-                        [2] = "Main"
-                    }
-                }
-                game:GetService("ReplicatedStorage").RemoteEvent:FireServer(unpack(args))
-                
-                -- Ping the server so it registers the completion
-                game:GetService("ReplicatedStorage").PingEvent:FireServer()
-                
-                -- Fast but safe delay to prevent kick
-                task.wait(0.5) 
+            while _G.LoopQuest do
+                ForceSkip()
+                task.wait(1.5) -- Delay to let the server process the 'Reward'
             end
         end)
     end
 })
 
-MissionTab:CreateButton({
-    Name = "Complete 10 Missions Instantly",
-    Callback = function()
-        for i = 1, 10 do
-            local args = {[1] = {[1] = "NextMission", [2] = "Main"}}
-            game:GetService("ReplicatedStorage").RemoteEvent:FireServer(unpack(args))
-            task.wait(0.1)
-        end
-        Rayfield:Notify({Title = "Success", Content = "Skipped 10 Chapters."})
-    end
-})
+--- [TAB: THE ANCHOR] ---
+local MainTab = Window:CreateTab("Main", 4483362458)
 
--- [[ THE ESSENTIALS ]]
-local MainTab = Window:CreateTab("Utility", 4483362458)
-
+-- Integrating your requested Respawn + Death Anchor
 MainTab:CreateToggle({
-    Name = "Auto-Spawn & Return (Death Anchor)",
+    Name = "Auto-Respawn & Return",
     CurrentValue = true,
     Callback = function(v) _G.AutoRespawn = v end
 })
 
--- [[ ENGINE OVERRIDE ]]
 local function ForceSpawn()
     local pGui = game.Players.LocalPlayer:WaitForChild("PlayerGui")
     for _, v in pairs(pGui:GetDescendants()) do
