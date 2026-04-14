@@ -1,131 +1,104 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
+-- [[ HWID & USER SECURITY ]]
+local HttpService = game:GetService("HttpService")
+local Player = game.Players.LocalPlayer
+local DeviceID = game:GetService("RbxAnalyticsService"):GetClientId()
+
+-- REPLACE 'YOUR_HWID_HERE' with your actual HWID after the first run (it prints to console)
+local AllowedHWID = "YOUR_HWID_HERE" 
+local AdminKey = "erin01"
+
+local function CheckSecurity(inputKey)
+    if inputKey == AdminKey then
+        if AllowedHWID == "YOUR_HWID_HERE" then
+            print("首次运行 detected. Your HWID is: " .. DeviceID)
+            print("Please put this ID into the 'AllowedHWID' variable in your script!")
+            return true
+        elseif DeviceID == AllowedHWID then
+            return true
+        else
+            Player:Kick("Unauthorized Device. HWID Mismatch.")
+            return false
+        end
+    end
+    return false
+end
+
 local Window = Rayfield:CreateWindow({
-   Name = "Erin's Tha Bronx | Trench Runner V3",
-   LoadingTitle = "Infiltrating the South Bronx...",
+   Name = "Erin's Bodycam Elite | HWID SECURE",
+   LoadingTitle = "Verifying Device Hardware...",
    LoadingSubtitle = "by NotAmnesia",
-   ConfigurationSaving = { Enabled = true, FolderName = "ErinBronx" },
+   ConfigurationSaving = { Enabled = true, FolderName = "ErinBodycam" },
    KeySystem = true,
    KeySettings = {
-      Title = "Trench Clearance",
-      Subtitle = "TB3 Security System",
-      Note = "Key: BRONX_2026_DR1LL",
-      FileName = "BronxKey",
+      Title = "Erin's Private Access",
+      Subtitle = "HWID Locked System",
+      Note = "Key is: erin01",
+      FileName = "ErinPrivate",
       SaveKey = true,
-      Key = {"BRONX_2026_DR1LL"}
+      Key = {AdminKey}
    }
 })
 
--- SERVICES
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local TweenService = game:GetService("TweenService")
+-- Check security on load
+if not CheckSecurity(AdminKey) then return end
 
--- SETTINGS
-local Vars = { AutoCash = false, GodMode = false, WalkSpeed = 16 }
+--- [TAB 1: CAMERA ENGINE] ---
+local CamTab = Window:CreateTab("Bodycam FX", 4483362458)
 
--- SMOOTH TWEEN FUNCTION (Prevents Bans)
-local function SmoothTP(targetCFrame)
-    if not LocalPlayer.Character then return end
-    local dist = (LocalPlayer.Character.HumanoidRootPart.Position - targetCFrame.Position).Magnitude
-    local speed = 50 -- Reasonable speed for TB3
-    local tween = TweenService:Create(LocalPlayer.Character.HumanoidRootPart, TweenInfo.new(dist/speed, Enum.EasingStyle.Linear), {CFrame = targetCFrame})
-    tween:Play()
-    return tween
-end
-
---- [TAB 1: MONEY FARM] ---
-local FarmTab = Window:CreateTab("Auto-Farm", 4483362458)
-
-FarmTab:CreateToggle({
-    Name = "Auto-ATM Robbery (Smooth)",
+CamTab:CreateToggle({
+    Name = "Enable Ultra-Realistic Bodycam",
     CurrentValue = false,
     Callback = function(v)
-        Vars.AutoCash = v
+        _G.BodyCam = v
         task.spawn(function()
-            while Vars.AutoCash do
-                for _, atm in pairs(workspace:GetDescendants()) do
-                    if atm.Name == "ATM" and atm:FindFirstChild("Cash") then
-                        local t = SmoothTP(atm.CFrame * CFrame.new(0, 0, 3))
-                        if t then t.Completed:Wait() end
-                        
-                        -- Fire the interaction remote
-                        local remote = game:GetService("ReplicatedStorage"):FindFirstChild("RobATM", true)
-                        if remote then remote:FireServer(atm) end
-                        task.wait(2) -- Wait for cash to drop
-                    end
+            local Camera = workspace.CurrentCamera
+            while _G.BodyCam do
+                -- Adds the shaky, chest-mounted movement
+                local char = Player.Character
+                if char and char:FindFirstChild("UpperTorso") then
+                    Camera.CameraSubject = char.UpperTorso
+                    Camera.FieldOfView = 85
+                    -- Shaky Cam Logic
+                    local shake = Vector3.new(math.random(-5,5)/100, math.random(-5,5)/100, math.random(-5,5)/100)
+                    Camera.CFrame = Camera.CFrame * CFrame.new(shake)
                 end
-                task.wait(1)
+                task.wait()
             end
+            Camera.CameraSubject = Player.Character.Humanoid
         end)
     end
 })
 
-FarmTab:CreateButton({
-    Name = "Instant Cash Pickup (Aura)",
+CamTab:CreateButton({
+    Name = "Night Vision (V2 Green)",
     Callback = function()
-        task.spawn(function()
-            while true do
-                for _, obj in pairs(workspace:GetDescendants()) do
-                    if obj.Name == "CashDrop" or obj.Name == "MoneyBag" then
-                        local dist = (LocalPlayer.Character.HumanoidRootPart.Position - obj.Position).Magnitude
-                        if dist < 20 then
-                            firetouchinterest(LocalPlayer.Character.HumanoidRootPart, obj, 0)
-                            firetouchinterest(LocalPlayer.Character.HumanoidRootPart, obj, 1)
-                        end
-                    end
-                end
-                task.wait(0.5)
-            end
-        end)
+        local color = Instance.new("ColorCorrectionEffect", game.Lighting)
+        color.TintColor = Color3.fromRGB(100, 255, 100)
+        color.Brightness = 0.2
+        game.Lighting.Brightness = 3
     end
 })
 
---- [TAB 2: COMBAT & DEFENSE] ---
-local CombatTab = Window:CreateTab("Combat", 4483362458)
+--- [TAB 2: OVERLAYS] ---
+local OverlayTab = Window:CreateTab("Overlays", 4483362458)
 
-CombatTab:CreateButton({
-    Name = "Anti-Stomp (Fast Getup)",
-    Callback = function()
-        LocalPlayer.Character.ChildAdded:Connect(function(child)
-            if child.Name == "Downed" or child.Name == "Ragdoll" then
-                child:Destroy() -- Breaks the downed state
-            end
-        end)
-    end
-})
-
-CombatTab:CreateToggle({
-    Name = "God-View (No Fog/Night)",
+OverlayTab:CreateToggle({
+    Name = "Timestamp & REC Indicator",
     CurrentValue = false,
     Callback = function(v)
-        if v then
-            game.Lighting.Brightness = 2
-            game.Lighting.FogEnd = 100000
-            game.Lighting.ClockTime = 12
-        end
+        -- Logic to create a text label on screen with 2026 date
     end
 })
 
---- [TAB 3: TELEPORTS] ---
-local TPTab = Window:CreateTab("Teleports", 4483362458)
-TPTab:CreateButton({Name = "The Courts", Callback = function() SmoothTP(CFrame.new(120, 10, -450)) end})
-TPTab:CreateButton({Name = "Gun Shop", Callback = function() SmoothTP(CFrame.new(-200, 10, 150)) end})
-TPTab:CreateButton({Name = "Safe House", Callback = function() SmoothTP(CFrame.new(1500, 20, 1500)) end})
+--- [TAB 3: SETTINGS] ---
+local SettingsTab = Window:CreateTab("Security", 4483362458)
 
---- [TAB 4: PLAYER] ---
-local PlayerTab = Window:CreateTab("Player", 4483362458)
-PlayerTab:CreateSlider({
-    Name = "Dash/Walk Speed",
-    Range = {16, 100},
-    Increment = 1,
-    CurrentValue = 16,
-    Callback = function(v) Vars.WalkSpeed = v end
-})
-
--- [LOOP]
-game:GetService("RunService").RenderStepped:Connect(function()
-    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-        LocalPlayer.Character.Humanoid.WalkSpeed = Vars.WalkSpeed
+SettingsTab:CreateButton({
+    Name = "Print My HWID (For Reset)",
+    Callback = function()
+        print("Your Device HWID: " .. DeviceID)
+        Rayfield:Notify({Title = "HWID Captured", Content = "Check your F9 console to see your ID!"})
     end
-end)
+})
