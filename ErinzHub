@@ -1,124 +1,91 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
+-- [[ SECURITY & POS DATA ]]
+local AdminKey = "erin01"
+local DeathPos = nil
+local AutoReturnEnabled = true
+
 local Window = Rayfield:CreateWindow({
-   Name = "Erin's Saber Legends | Mythic Hub",
-   LoadingTitle = "Forging Mythic Blades...",
+   Name = "Erin's Private | Auto-Return Hub",
+   LoadingTitle = "Initializing Death Anchor...",
    LoadingSubtitle = "by NotAmnesia",
-   ConfigurationSaving = { Enabled = true, FolderName = "ErinSaber" },
+   ConfigurationSaving = { Enabled = true, FolderName = "ErinPrivate" },
    KeySystem = true,
    KeySettings = {
-      Title = "Blade Master Access",
-      Subtitle = "2026 Legend Key",
-      Note = "Key: SABER_LEGENDS_2026_ELITE",
-      FileName = "SaberKey",
+      Title = "Private Access",
+      Subtitle = "Instant Respawn System",
+      Note = "Key: erin01",
+      FileName = "ErinPrivate",
       SaveKey = true,
-      Key = {"SABER_LEGENDS_2026_ELITE"}
+      Key = {AdminKey}
    }
 })
 
 -- SERVICES
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
 
--- SETTINGS
-local Vars = { AutoSwing = false, AutoBlock = false, AuraRange = 15 }
+--- [TAB: AUTO-RETURN] ---
+local MainTab = Window:CreateTab("Automation", 4483362458)
 
---- [TAB 1: COMBAT ENGINE] ---
-local CombatTab = Window:CreateTab("Combat", 4483362458)
-
-CombatTab:CreateToggle({
-    Name = "Instant Auto-Block (Frame Perfect)",
-    CurrentValue = false,
+MainTab:CreateToggle({
+    Name = "Auto-Return to Death Spot (1s Delay)",
+    CurrentValue = true,
     Callback = function(v)
-        Vars.AutoBlock = v
-        task.spawn(function()
-            while Vars.AutoBlock do
-                for _, enemy in pairs(Players:GetPlayers()) do
-                    if enemy ~= LocalPlayer and enemy.Character then
-                        local tool = enemy.Character:FindFirstChildOfClass("Tool")
-                        -- Detects the swing animation/state of nearby enemies
-                        if tool and (tool:FindFirstChild("RemoteClick") or enemy.Character.Humanoid.Health > 0) then
-                            local dist = (LocalPlayer.Character.HumanoidRootPart.Position - enemy.Character.HumanoidRootPart.Position).Magnitude
-                            if dist < 20 then
-                                -- Fires the block remote exactly when they swing
-                                local blockRemote = ReplicatedStorage:FindFirstChild("BlockEvent", true) or ReplicatedStorage:FindFirstChild("Parry", true)
-                                if blockRemote then blockRemote:FireServer(true) end
-                            end
-                        end
-                    end
+        AutoReturnEnabled = v
+        if v then
+            Rayfield:Notify({Title = "System Active", Content = "Anchor locked. You will now auto-return upon death."})
+        end
+    end
+})
+
+MainTab:CreateSection("Manual Controls")
+MainTab:CreateButton({
+    Name = "Reset Current Anchor",
+    Callback = function() DeathPos = nil end
+})
+
+-- [[ THE ENGINE ]]
+-- Function to handle the teleport logic
+local function OnCharacterAdded(character)
+    if not AutoReturnEnabled or not DeathPos then return end
+    
+    -- Wait exactly 1 second after respawning
+    task.wait(1)
+    
+    local hrp = character:WaitForChild("HumanoidRootPart", 5)
+    if hrp then
+        hrp.CFrame = DeathPos
+        Rayfield:Notify({Title = "Returned", Content = "Successfully snapped back to your last spot."})
+    end
+end
+
+-- Function to monitor health and save position
+local function MonitorLife()
+    LocalPlayer.CharacterAdded:Connect(function(char)
+        -- Connect the return logic to the new character
+        OnCharacterAdded(char)
+        
+        local hum = char:WaitForChild("Humanoid")
+        hum.Died:Connect(function()
+            if char:FindFirstChild("HumanoidRootPart") then
+                -- Log the position the EXACT moment you die
+                DeathPos = char.HumanoidRootPart.CFrame
+            end
+        end)
+    end)
+    
+    -- Handle initial character if already spawned
+    if LocalPlayer.Character then
+        local hum = LocalPlayer.Character:FindFirstChild("Humanoid")
+        if hum then
+            hum.Died:Connect(function()
+                if LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                    DeathPos = LocalPlayer.Character.HumanoidRootPart.CFrame
                 end
-                task.wait()
-            end
-        end)
+            end)
+        end
     end
-})
+end
 
-CombatTab:CreateToggle({
-    Name = "Kill Aura (Hit All Nearby)",
-    CurrentValue = false,
-    Callback = function(v)
-        _G.Aura = v
-        task.spawn(function()
-            while _G.Aura do
-                for _, enemy in pairs(Players:GetPlayers()) do
-                    if enemy ~= LocalPlayer and enemy.Character and enemy.Character:FindFirstChild("Humanoid") then
-                        local dist = (LocalPlayer.Character.HumanoidRootPart.Position - enemy.Character.HumanoidRootPart.Position).Magnitude
-                        if dist < Vars.AuraRange then
-                            local hitRemote = ReplicatedStorage:FindFirstChild("Hit", true) or ReplicatedStorage:FindFirstChild("Attack", true)
-                            if hitRemote then hitRemote:FireServer(enemy.Character.Humanoid) end
-                        end
-                    end
-                end
-                task.wait(0.1)
-            end
-        end)
-    end
-})
-
---- [TAB 2: SHOP & SABERS] ---
-local ShopTab = Window:CreateTab("Unlocker", 4483362458)
-
-ShopTab:CreateButton({
-    Name = "Unlock All Gamepass Sabers (Spoof)",
-    Callback = function()
-        -- Metatable Index Hooking to trick the game into thinking you own the VIP/Legends passes
-        local mt = getrawmetatable(game); setreadonly(mt, false)
-        local old = mt.__index
-        mt.__index = newcclosure(function(t, k)
-            if k == "OwnsSaberPass" or k == "VIP" or k == "DoubleCoins" then return true end
-            return old(t, k)
-        end)
-        setreadonly(mt, true)
-        Rayfield:Notify({Title = "Unlocked", Content = "Shop items now available for 0 Coins!"})
-    end
-})
-
---- [TAB 3: AUTO FARM] ---
-local FarmTab = Window:CreateTab("Auto-Farm", 4483362458)
-
-FarmTab:CreateToggle({
-    Name = "Infinite Swing (No Cooldown)",
-    CurrentValue = false,
-    Callback = function(v)
-        Vars.AutoSwing = v
-        task.spawn(function()
-            while Vars.AutoSwing do
-                local tool = LocalPlayer.Character:FindFirstChildOfClass("Tool")
-                if tool then tool:Activate() end
-                task.wait()
-            end
-        end)
-    end
-})
-
---- [TAB 4: PLAYER] ---
-local PlayerTab = Window:CreateTab("Player", 4483362458)
-PlayerTab:CreateSlider({
-    Name = "WalkSpeed",
-    Range = {16, 500},
-    Increment = 1,
-    CurrentValue = 16,
-    Callback = function(v) LocalPlayer.Character.Humanoid.WalkSpeed = v end
-})
+task.spawn(MonitorLife)
