@@ -1,14 +1,14 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "Erin's SPTS Mugen Overlord",
-   LoadingTitle = "Breaking Power Limits...",
+   Name = "Erin's Mugen Overlord | Deep Spy",
+   LoadingTitle = "Initializing Sniffer...",
    LoadingSubtitle = "by NotAmnesia",
    ConfigurationSaving = { Enabled = true, FolderName = "ErinMugen" },
    KeySystem = true,
    KeySettings = {
-      Title = "Elite Mugen Access",
-      Subtitle = "2026 Token System",
+      Title = "Security Clearance",
+      Subtitle = "2026 Spy System",
       Note = "Key: ERIN_2026_PREMIUM",
       FileName = "ErinKey",
       SaveKey = true,
@@ -16,127 +16,84 @@ local Window = Rayfield:CreateWindow({
    }
 })
 
--- SERVICES
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
+-- [THE POWERFUL SNIFFER ENGINE]
+local SpyLogs = {}
+local function StartDeepSpy()
+    local mt = getrawmetatable(game)
+    local oldNamecall = mt.__namecall
+    setreadonly(mt, false)
 
--- SETTINGS
-local Vars = {
-    AutoFist = false,
-    AutoBody = false,
-    AutoMind = false,
-    AutoSpeed = false,
-    AutoTokens = false,
-    WalkSpeed = 16
-}
+    mt.__namecall = newcclosure(function(self, ...)
+        local method = getnamecallmethod()
+        local args = {...}
 
---- [TAB 1: AUTO-TRAIN] ---
-local TrainTab = Window:CreateTab("Auto Train", 4483362458)
-
-TrainTab:CreateToggle({
-    Name = "Auto-Fist Strength",
-    CurrentValue = false,
-    Callback = function(v)
-        Vars.AutoFist = v
-        task.spawn(function()
-            while Vars.AutoFist do
-                -- Fires the punching remote
-                local remote = ReplicatedStorage:FindFirstChild("AddFistStrength", true) or ReplicatedStorage:FindFirstChild("PunchRemote", true)
-                if remote then remote:FireServer() end
-                task.wait(0.01) -- Insane speed for Mugen
+        if method == "FireServer" then
+            local remoteName = tostring(self.Name)
+            local data = ""
+            for i, v in pairs(args) do
+                data = data .. "[" .. i .. "]: " .. tostring(v) .. " | "
             end
-        end)
-    end
-})
+            
+            -- Filter for Tokens or Currency specifically
+            if remoteName:lower():find("token") or remoteName:lower():find("currency") or remoteName:lower():find("add") then
+                print("🚨 TOKEN REMOTE FOUND: " .. remoteName)
+                print("Args: " .. data)
+                table.insert(SpyLogs, "Found: " .. remoteName .. " | Data: " .. data)
+            end
+        end
+        return oldNamecall(self, ...)
+    end)
+    setreadonly(mt, true)
+end
 
-TrainTab:CreateToggle({
-    Name = "Auto-Body Toughness",
+--- [TAB: AUTO FARM] ---
+local FarmTab = Window:CreateTab("Auto Train", 4483362458)
+FarmTab:CreateToggle({
+    Name = "Auto-Punch (Fast)",
     CurrentValue = false,
-    Callback = function(v)
-        Vars.AutoBody = v
+    Callback = function(v) _G.Punch = v
         task.spawn(function()
-            while Vars.AutoBody do
-                local remote = ReplicatedStorage:FindFirstChild("AddBodyToughness", true)
-                if remote then remote:FireServer() end
+            while _G.Punch do
+                local r = game:GetService("ReplicatedStorage"):FindFirstChild("AddFistStrength", true)
+                if r then r:FireServer() end
                 task.wait(0.01)
             end
         end)
     end
 })
 
---- [TAB 2: CURRENCY & TOKENS] ---
-local MoneyTab = Window:CreateTab("Currency Hub", 4483362458)
+--- [TAB: REMOTE SPY] ---
+local SpyTab = Window:CreateTab("Remote Spy", 4483362458)
 
-MoneyTab:CreateToggle({
-    Name = "Auto-Collect Tokens (Bypass)",
-    CurrentValue = false,
-    Callback = function(v)
-        Vars.AutoTokens = v
-        task.spawn(function()
-            while Vars.AutoTokens do
-                -- Mugen games often have a "Daily" or "Clicker" token reward
-                local tokenRemote = ReplicatedStorage:FindFirstChild("AddTokens", true) or ReplicatedStorage:FindFirstChild("ClaimTokens", true)
-                if tokenRemote then tokenRemote:FireServer(999999) end
-                task.wait(1)
-            end
-        end)
-    end
-})
-
-MoneyTab:CreateButton({
-    Name = "Infinite Token Multiplier Spoof",
+SpyTab:CreateButton({
+    Name = "ACTIVATE DEEP SNIFFER",
     Callback = function()
-        -- Spoofs VIP and multiplier values to double your gains
-        local mt = getrawmetatable(game); setreadonly(mt, false)
-        local old = mt.__index
-        mt.__index = newcclosure(function(t, k)
-            if k == "TokenMultiplier" or k == "VIP" then return 1000 end
-            return old(t, k)
-        end)
-        setreadonly(mt, true)
-        Rayfield:Notify({Title = "Bypassed", Content = "Token gains multiplied by 1000x."})
+        StartDeepSpy()
+        Rayfield:Notify({Title = "Spy Active", Content = "Sniffing all Token & Currency Remotes. Check F9 Console!"})
     end
 })
 
---- [TAB 3: TELEPORTS] ---
+SpyTab:CreateButton({
+    Name = "Test Token Remote (Fire Logged)",
+    Callback = function()
+        if #SpyLogs > 0 then
+            Rayfield:Notify({Title = "Remote Found", Content = "Check the F9 log for the Token event name."})
+        else
+            Rayfield:Notify({Title = "Searching...", Content = "Go click a token in-game or buy something to log it!"})
+        end
+    end
+})
+
+--- [TAB: TELEPORTS] ---
 local TPTab = Window:CreateTab("Teleports", 4483362458)
-
 TPTab:CreateButton({
-    Name = "TP to 100T Training Zone",
+    Name = "TP to Token Crate",
     Callback = function()
-        LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(5000, 1000, 5000) -- Example High Tier Coords
-    end
-})
-
-TPTab:CreateButton({
-    Name = "TP to Token Spawn",
-    Callback = function()
-        -- Automatically finds the token crate
         for _, v in pairs(workspace:GetDescendants()) do
-            if v.Name:find("Token") or v.Name:find("Crate") then
-                LocalPlayer.Character.HumanoidRootPart.CFrame = v.CFrame
+            if v.Name:lower():find("token") or v.Name:lower():find("crate") then
+                game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = v.CFrame
                 break
             end
         end
     end
 })
-
---- [TAB 4: PLAYER MODS] ---
-local PlayerTab = Window:CreateTab("Player Settings", 4483362458)
-
-PlayerTab:CreateSlider({
-    Name = "Custom WalkSpeed",
-    Range = {16, 5000},
-    Increment = 10,
-    CurrentValue = 16,
-    Callback = function(v) Vars.WalkSpeed = v end
-})
-
--- [CORE LOOP]
-RunService.RenderStepped:Connect(function()
-    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-        LocalPlayer.Character.Humanoid.WalkSpeed = Vars.WalkSpeed
-    end
-end)
