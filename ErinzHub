@@ -1,23 +1,18 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
--- [[ PRIVATE SETTINGS ]]
-local AdminKey = "erin01"
-local DeathPos = nil
-local AutoSystem = true
-
 local Window = Rayfield:CreateWindow({
-   Name = "Erin's Private | SPTS Mugen Bypass V2",
-   LoadingTitle = "Bypassing Menu State...",
+   Name = "Marvel Omega | War Chest & Kill Hub",
+   LoadingTitle = "Calculating Loot Locations...",
    LoadingSubtitle = "by NotAmnesia",
-   ConfigurationSaving = { Enabled = true, FolderName = "ErinPrivate" },
+   ConfigurationSaving = { Enabled = true, FolderName = "ErinMarvel" },
    KeySystem = true,
    KeySettings = {
-      Title = "Private Access",
-      Subtitle = "Zero-Delay Respawn",
-      Note = "Key: erin01",
-      FileName = "ErinPrivate",
+      Title = "Elite Avenger Access",
+      Subtitle = "Money Grinder V3",
+      Note = "Key: OMEGA_2026_MARVEL",
+      FileName = "MarvelKey",
       SaveKey = true,
-      Key = {AdminKey}
+      Key = {"OMEGA_2026_MARVEL"}
    }
 })
 
@@ -26,75 +21,100 @@ local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
---- [TAB: BYPASS] ---
-local MainTab = Window:CreateTab("Automation", 4483362458)
+-- SETTINGS
+local Vars = { AutoChest = false, KillAura = false, Reach = 25 }
 
-MainTab:CreateToggle({
-    Name = "Active Death Anchor & Auto-Spawn",
-    CurrentValue = true,
-    Callback = function(v) AutoSystem = v end
+--- [TAB 1: MONEY GRINDER] ---
+local MoneyTab = Window:CreateTab("Money Farm", 4483362458)
+
+MoneyTab:CreateToggle({
+    Name = "Auto-Loot All Chests (TP Mode)",
+    CurrentValue = false,
+    Callback = function(v)
+        Vars.AutoChest = v
+        task.spawn(function()
+            while Vars.AutoChest do
+                -- Scans for Chests in the workspace
+                for _, obj in pairs(workspace:GetDescendants()) do
+                    if (obj.Name:find("Chest") or obj.Name:find("Loot")) and obj:IsA("BasePart") then
+                        local oldPos = LocalPlayer.Character.HumanoidRootPart.CFrame
+                        -- Instant TP to Chest, Interact, then TP back
+                        LocalPlayer.Character.HumanoidRootPart.CFrame = obj.CFrame
+                        task.wait(0.2)
+                        -- Trigger interaction (Adjust for Marvel Omega's Prompt)
+                        fireproximityprompt(obj:FindFirstChildOfClass("ProximityPrompt"))
+                        task.wait(0.1)
+                        LocalPlayer.Character.HumanoidRootPart.CFrame = oldPos
+                    end
+                end
+                task.wait(5) -- Cooldown for new chest spawns
+            end
+        end)
+    end
 })
 
--- [[ THE AGGRESSIVE ENGINE ]]
-
--- 1. FORCE SPAWN (Bypasses the GUI entirely)
-local function ForceSpawn()
-    -- Look for common SPTS Mugen remotes first (Fastest)
-    local remotes = {"Spawn", "LoadCharacter", "RequestSpawn", "Start"}
-    for _, name in pairs(remotes) do
-        local r = ReplicatedStorage:FindFirstChild(name, true)
-        if r and r:IsA("RemoteEvent") then
-            r:FireServer()
-        end
-    end
-    
-    -- Fallback: Manual UI clicking if remote is hidden
-    local pGui = LocalPlayer:FindFirstChild("PlayerGui")
-    if pGui then
-        for _, v in pairs(pGui:GetDescendants()) do
-            if v:IsA("TextButton") and v.Text:upper():find("SPAWN") and v.Visible then
-                -- Fires the internal button click event directly
-                for _, connection in pairs(getconnections(v.MouseButton1Click)) do
-                    connection:Fire()
+MoneyTab:CreateToggle({
+    Name = "Player Kill-Aura (For Money)",
+    CurrentValue = false,
+    Callback = function(v)
+        Vars.KillAura = v
+        task.spawn(function()
+            while Vars.KillAura do
+                for _, p in pairs(Players:GetPlayers()) do
+                    if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("Humanoid") then
+                        local dist = (LocalPlayer.Character.HumanoidRootPart.Position - p.Character.HumanoidRootPart.Position).Magnitude
+                        if dist < Vars.Reach and p.Character.Humanoid.Health > 0 then
+                            -- Firing the damage remotes to secure the kill/money
+                            local attack = ReplicatedStorage:FindFirstChild("Attack", true) 
+                                           or ReplicatedStorage:FindFirstChild("CombatRemote", true)
+                            if attack then attack:FireServer(p.Character) end
+                        end
+                    end
                 end
+                task.wait(0.1)
+            end
+        end)
+    end
+})
+
+--- [TAB 2: COMBAT BOOST] ---
+local CombatTab = Window:CreateTab("Combat", 4483362458)
+
+CombatTab:CreateSlider({
+    Name = "Aura Reach",
+    Range = {10, 100},
+    Increment = 1,
+    CurrentValue = 25,
+    Callback = function(v) Vars.Reach = v end
+})
+
+CombatTab:CreateButton({
+    Name = "1-Shot NPC (Money Bypass)",
+    Callback = function()
+        -- Metatable Hook for Damage
+        local mt = getrawmetatable(game); setreadonly(mt, false)
+        local old = mt.__namecall
+        mt.__namecall = newcclosure(function(self, ...)
+            local args = {...}
+            if self.Name:lower():find("damage") or self.Name:lower():find("hit") then
+                args[2] = 999999 -- Forced massive damage
+            end
+            return old(self, unpack(args))
+        end)
+        setreadonly(mt, true)
+    end
+})
+
+--- [TAB 3: WORLD] ---
+local WorldTab = Window:CreateTab("World", 4483362458)
+WorldTab:CreateButton({
+    Name = "Chest ESP (Find Wealth)",
+    Callback = function()
+        for _, obj in pairs(workspace:GetDescendants()) do
+            if obj.Name:find("Chest") then
+                local high = Instance.new("Highlight", obj)
+                high.FillColor = Color3.fromRGB(255, 215, 0) -- Gold
             end
         end
     end
-end
-
--- 2. THE RECALL LOOP
-local function HandleCharacter(char)
-    if not AutoSystem then return end
-    
-    -- Save position when you die
-    local hum = char:WaitForChild("Humanoid")
-    hum.Died:Connect(function()
-        if char:FindFirstChild("HumanoidRootPart") then
-            DeathPos = char.HumanoidRootPart.CFrame
-        end
-        
-        -- IMMEDIATELY start spamming spawn request
-        task.spawn(function()
-            repeat 
-                ForceSpawn()
-                task.wait(0.5) 
-            until LocalPlayer.Character ~= char
-        end)
-    end)
-end
-
--- 3. THE TELEPORT (Snaps you back once you load)
-LocalPlayer.CharacterAdded:Connect(function(char)
-    HandleCharacter(char)
-    
-    if AutoSystem and DeathPos then
-        -- Wait for the black screen to fade (Crucial for Mugen)
-        repeat task.wait() until char:FindFirstChild("HumanoidRootPart")
-        task.wait(0.8) 
-        char.HumanoidRootPart.CFrame = DeathPos
-        Rayfield:Notify({Title = "Anchor Set", Content = "Returned to last location."})
-    end
-end)
-
--- Initialize
-if LocalPlayer.Character then HandleCharacter(LocalPlayer.Character) end
+})
