@@ -1,19 +1,19 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
--- [[ CONFIG ]]
+-- [[ CONFIG & SECURITY ]]
 local AdminKey = "erin01"
 local DeathPos = nil
-local Training = {Fist = false, Mind = false, Body = false, Speed = false}
+local RemoteList = {}
 
 local Window = Rayfield:CreateWindow({
-   Name = "Erin's Private | SPTE 2026",
-   LoadingTitle = "Awakening Endless Power...",
+   Name = "Erin's Private | SPTE Dev-Mode",
+   LoadingTitle = "Hijacking Endless Remotes...",
    LoadingSubtitle = "by NotAmnesia",
-   ConfigurationSaving = { Enabled = true, FolderName = "ErinSPTE" },
+   ConfigurationSaving = { Enabled = true, FolderName = "ErinSPTE_Dev" },
    KeySystem = true,
    KeySettings = {
-      Title = "Private Access",
-      Subtitle = "SPTE Endless Hub",
+      Title = "Executive Access",
+      Subtitle = "SPTE Full Bypass",
       Note = "Key: erin01",
       FileName = "ErinKey",
       SaveKey = true,
@@ -25,65 +25,89 @@ local Window = Rayfield:CreateWindow({
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = game.Players.LocalPlayer
 
---- [TAB: AUTO-TRAIN] ---
-local TrainTab = Window:CreateTab("Auto-Train", 4483362458)
+--- [TAB 1: GAMEPASS BYPASS] ---
+local ShopTab = Window:CreateTab("Bypass", 4483362458)
 
-TrainTab:CreateToggle({
-    Name = "Auto-Fist Strength",
+ShopTab:CreateButton({
+    Name = "Unlock All Gamepasses (Local Spoof)",
+    Callback = function()
+        -- Metatable Hooking: Tricks the game into thinking you own the VIP/Fast training passes
+        local mt = getrawmetatable(game); setreadonly(mt, false)
+        local old = mt.__index
+        mt.__index = newcclosure(function(t, k)
+            -- These are common Endless Gamepass internal names
+            if k == "OwnsPass" or k == "VIP" or k == "DoubleTraining" or k == "FastSkills" then
+                return true
+            end
+            return old(t, k)
+        end)
+        setreadonly(mt, true)
+        Rayfield:Notify({Title = "Bypass Active", Content = "Shop items spoofed. Try equipping locked items!"})
+    end
+})
+
+--- [TAB 2: REMOTE EXPLOITER] ---
+local RemoteTab = Window:CreateTab("Remotes", 4483362458)
+
+RemoteTab:CreateButton({
+    Name = "Fire All Training Remotes (Infinite Stats)",
+    Callback = function()
+        -- This scans the entire game for any training-related remotes and fires them all at once
+        for _, v in pairs(ReplicatedStorage:GetDescendants()) do
+            if v:IsA("RemoteEvent") and (v.Name:find("Add") or v.Name:find("Train") or v.Name:find("Strength")) then
+                v:FireServer()
+                print("Fired Remote: " .. v.Name)
+            end
+        end
+    end
+})
+
+RemoteTab:CreateToggle({
+    Name = "Auto-Collect All Chests/Runes",
     CurrentValue = false,
     Callback = function(v)
-        Training.Fist = v
+        _G.Collect = v
         task.spawn(function()
-            while Training.Fist do
-                local r = ReplicatedStorage:FindFirstChild("AddFistStrength", true) or ReplicatedStorage:FindFirstChild("TrainFist", true)
-                if r then r:FireServer() end
-                task.wait(0.01)
+            while _G.Collect do
+                for _, obj in pairs(workspace:GetDescendants()) do
+                    if obj.Name:find("Chest") or obj.Name:find("Rune") then
+                        -- Instant Fire interaction
+                        local r = ReplicatedStorage:FindFirstChild("Claim", true) or ReplicatedStorage:FindFirstChild("Collect", true)
+                        if r then r:FireServer(obj) end
+                    end
+                end
+                task.wait(1)
             end
         end)
     end
 })
 
-TrainTab:CreateToggle({
-    Name = "Auto-Mind (Psychic)",
-    CurrentValue = false,
-    Callback = function(v)
-        Training.Mind = v
-        task.spawn(function()
-            while Training.Mind do
-                local r = ReplicatedStorage:FindFirstChild("AddPsychic", true) or ReplicatedStorage:FindFirstChild("TrainMind", true)
-                if r then r:FireServer() end
-                task.wait(0.01)
-            end
-        end)
-    end
-})
-
---- [TAB: AFK SECURITY] ---
-local AfkTab = Window:CreateTab("AFK Return", 4483362458)
+--- [TAB 3: AFK PROTECTION] ---
+local AfkTab = Window:CreateTab("Safety", 4483362458)
 
 AfkTab:CreateToggle({
-    Name = "Instant Respawn & Return",
+    Name = "Death-Anchor & Auto-Respawn",
     CurrentValue = true,
-    Callback = function(v) _G.AutoReturn = v end
+    Callback = function(v) _G.AutoRespawn = v end
 })
 
--- [[ THE ENGINE ]]
+-- [[ THE SYSTEM ENGINE ]]
 local function ForceSpawn()
     local pGui = LocalPlayer:WaitForChild("PlayerGui")
     for _, v in pairs(pGui:GetDescendants()) do
         if v:IsA("TextButton") and v.Text:upper():find("SPAWN") and v.Visible then
             local x, y = v.AbsolutePosition.X + (v.AbsoluteSize.X / 2), v.AbsolutePosition.Y + (v.AbsoluteSize.Y / 2)
             game:GetService("VirtualInputManager"):SendMouseButtonEvent(x, y, 0, true, game, 0)
-            task.wait(0.1)
+            task.wait(0.05)
             game:GetService("VirtualInputManager"):SendMouseButtonEvent(x, y, 0, false, game, 0)
         end
     end
 end
 
 LocalPlayer.CharacterAdded:Connect(function(char)
-    if _G.AutoReturn then
+    if _G.AutoRespawn then
         task.spawn(ForceSpawn)
-        task.wait(1.5)
+        task.wait(1.2)
         if DeathPos then char:WaitForChild("HumanoidRootPart").CFrame = DeathPos end
     end
     
@@ -93,19 +117,3 @@ LocalPlayer.CharacterAdded:Connect(function(char)
         end
     end)
 end)
-
---- [TAB: WORLD] ---
-local WorldTab = Window:CreateTab("Utility", 4483362458)
-WorldTab:CreateButton({
-    Name = "Unlock All Zones (Visual Bypass)",
-    Callback = function()
-        -- Tells the local game you have the requirements for every training zone
-        for _, zone in pairs(workspace:GetDescendants()) do
-            if zone:IsA("TouchTransmitter") then
-                firetouchinterest(LocalPlayer.Character.HumanoidRootPart, zone.Parent, 0)
-                task.wait(0.1)
-                firetouchinterest(LocalPlayer.Character.HumanoidRootPart, zone.Parent, 1)
-            end
-        end
-    end
-})
