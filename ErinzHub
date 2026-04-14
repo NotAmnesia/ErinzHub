@@ -1,152 +1,124 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
--- [[ HWID & USER SECURITY ]]
-local DeviceID = game:GetService("RbxAnalyticsService"):GetClientId()
-local AllowedHWID = "YOUR_HWID_HERE" -- PASTE YOUR ID HERE AFTER FIRST RUN
-local AdminKey = "erin01"
-
-if not (AllowedHWID == "YOUR_HWID_HERE" or DeviceID == AllowedHWID) then
-    game.Players.LocalPlayer:Kick("HWID Mismatch. Device Unauthorized.")
-    return
-end
-
 local Window = Rayfield:CreateWindow({
-   Name = "Erin's Bodycam Predator | Private",
-   LoadingTitle = "Authenticating Erin01...",
+   Name = "Erin's Saber Legends | Mythic Hub",
+   LoadingTitle = "Forging Mythic Blades...",
    LoadingSubtitle = "by NotAmnesia",
-   ConfigurationSaving = { Enabled = true, FolderName = "ErinPrivate" },
+   ConfigurationSaving = { Enabled = true, FolderName = "ErinSaber" },
    KeySystem = true,
    KeySettings = {
-      Title = "Private Access",
-      Subtitle = "HWID Locked System",
-      Note = "Key: erin01",
-      FileName = "ErinPrivate",
+      Title = "Blade Master Access",
+      Subtitle = "2026 Legend Key",
+      Note = "Key: SABER_LEGENDS_2026_ELITE",
+      FileName = "SaberKey",
       SaveKey = true,
-      Key = {AdminKey}
+      Key = {"SABER_LEGENDS_2026_ELITE"}
    }
 })
 
 -- SERVICES
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
--- GLOBALS
-local Settings = {
-    Fly = false, FlySpeed = 50, Speed = 16,
-    EnemyColor = Color3.fromRGB(255, 0, 0),
-    CivilianColor = Color3.fromRGB(0, 255, 0),
-    EvidenceColor = Color3.fromRGB(255, 255, 0)
-}
+-- SETTINGS
+local Vars = { AutoSwing = false, AutoBlock = false, AuraRange = 15 }
 
---- [TAB: COMBAT] ---
+--- [TAB 1: COMBAT ENGINE] ---
 local CombatTab = Window:CreateTab("Combat", 4483362458)
 
-CombatTab:CreateButton({
-    Name = "1-Tap All Enemies (Damage Spoof)",
-    Callback = function()
-        -- Hooks the gun's damage remote
-        local mt = getrawmetatable(game); setreadonly(mt, false)
-        local old = mt.__namecall
-        mt.__namecall = newcclosure(function(self, ...)
-            local args = {...}
-            if self.Name == "HitRemote" or self.Name == "Damage" then
-                args[2] = 9999 -- Forced Max Damage
-                return old(self, unpack(args))
-            end
-            return old(self, ...)
-        end)
-        setreadonly(mt, true)
-    end
-})
-
-CombatTab:CreateButton({
-    Name = "Instant & Far Interact",
-    Callback = function()
+CombatTab:CreateToggle({
+    Name = "Instant Auto-Block (Frame Perfect)",
+    CurrentValue = false,
+    Callback = function(v)
+        Vars.AutoBlock = v
         task.spawn(function()
-            while task.wait(1) do
-                for _, v in pairs(workspace:GetDescendants()) do
-                    if v:IsA("ProximityPrompt") then
-                        v.HoldDuration = 0
-                        v.MaxActivationDistance = 100
+            while Vars.AutoBlock do
+                for _, enemy in pairs(Players:GetPlayers()) do
+                    if enemy ~= LocalPlayer and enemy.Character then
+                        local tool = enemy.Character:FindFirstChildOfClass("Tool")
+                        -- Detects the swing animation/state of nearby enemies
+                        if tool and (tool:FindFirstChild("RemoteClick") or enemy.Character.Humanoid.Health > 0) then
+                            local dist = (LocalPlayer.Character.HumanoidRootPart.Position - enemy.Character.HumanoidRootPart.Position).Magnitude
+                            if dist < 20 then
+                                -- Fires the block remote exactly when they swing
+                                local blockRemote = ReplicatedStorage:FindFirstChild("BlockEvent", true) or ReplicatedStorage:FindFirstChild("Parry", true)
+                                if blockRemote then blockRemote:FireServer(true) end
+                            end
+                        end
                     end
                 end
+                task.wait()
             end
         end)
     end
 })
 
---- [TAB: VISUALS] ---
-local VisualTab = Window:CreateTab("Visuals", 4483362458)
-
-local function CreateESP(target, name, color)
-    if not target:FindFirstChild("ErinESP") then
-        local box = Instance.new("Highlight", target)
-        box.Name = "ErinESP"
-        box.FillColor = color
-        box.OutlineColor = Color3.new(1,1,1)
-    end
-end
-
-VisualTab:CreateSection("ESP Toggles")
-VisualTab:CreateToggle({Name = "Enemy ESP", CurrentValue = false, Callback = function(v) _G.EnemyESP = v end})
-VisualTab:CreateColorPicker({Name = "Enemy Color", Color = Settings.EnemyColor, Callback = function(v) Settings.EnemyColor = v end})
-
-VisualTab:CreateToggle({Name = "Civilian ESP", CurrentValue = false, Callback = function(v) _G.CivESP = v end})
-VisualTab:CreateColorPicker({Name = "Civilian Color", Color = Settings.CivilianColor, Callback = function(v) Settings.CivilianColor = v end})
-
-VisualTab:CreateToggle({Name = "Evidence ESP", CurrentValue = false, Callback = function(v) _G.EvESP = v end})
-VisualTab:CreateColorPicker({Name = "Evidence Color", Color = Settings.EvidenceColor, Callback = function(v) Settings.EvidenceColor = v end})
-
-VisualTab:CreateSection("Environment")
-VisualTab:CreateButton({
-    Name = "Full Bright / No Fog",
-    Callback = function()
-        game.Lighting.Brightness = 2
-        game.Lighting.FogEnd = 100000
-        game.Lighting.GlobalShadows = false
+CombatTab:CreateToggle({
+    Name = "Kill Aura (Hit All Nearby)",
+    CurrentValue = false,
+    Callback = function(v)
+        _G.Aura = v
+        task.spawn(function()
+            while _G.Aura do
+                for _, enemy in pairs(Players:GetPlayers()) do
+                    if enemy ~= LocalPlayer and enemy.Character and enemy.Character:FindFirstChild("Humanoid") then
+                        local dist = (LocalPlayer.Character.HumanoidRootPart.Position - enemy.Character.HumanoidRootPart.Position).Magnitude
+                        if dist < Vars.AuraRange then
+                            local hitRemote = ReplicatedStorage:FindFirstChild("Hit", true) or ReplicatedStorage:FindFirstChild("Attack", true)
+                            if hitRemote then hitRemote:FireServer(enemy.Character.Humanoid) end
+                        end
+                    end
+                end
+                task.wait(0.1)
+            end
+        end)
     end
 })
 
---- [TAB: MOVEMENT] ---
-local MoveTab = Window:CreateTab("Movement", 4483362458)
+--- [TAB 2: SHOP & SABERS] ---
+local ShopTab = Window:CreateTab("Unlocker", 4483362458)
 
-MoveTab:CreateSlider({
+ShopTab:CreateButton({
+    Name = "Unlock All Gamepass Sabers (Spoof)",
+    Callback = function()
+        -- Metatable Index Hooking to trick the game into thinking you own the VIP/Legends passes
+        local mt = getrawmetatable(game); setreadonly(mt, false)
+        local old = mt.__index
+        mt.__index = newcclosure(function(t, k)
+            if k == "OwnsSaberPass" or k == "VIP" or k == "DoubleCoins" then return true end
+            return old(t, k)
+        end)
+        setreadonly(mt, true)
+        Rayfield:Notify({Title = "Unlocked", Content = "Shop items now available for 0 Coins!"})
+    end
+})
+
+--- [TAB 3: AUTO FARM] ---
+local FarmTab = Window:CreateTab("Auto-Farm", 4483362458)
+
+FarmTab:CreateToggle({
+    Name = "Infinite Swing (No Cooldown)",
+    CurrentValue = false,
+    Callback = function(v)
+        Vars.AutoSwing = v
+        task.spawn(function()
+            while Vars.AutoSwing do
+                local tool = LocalPlayer.Character:FindFirstChildOfClass("Tool")
+                if tool then tool:Activate() end
+                task.wait()
+            end
+        end)
+    end
+})
+
+--- [TAB 4: PLAYER] ---
+local PlayerTab = Window:CreateTab("Player", 4483362458)
+PlayerTab:CreateSlider({
     Name = "WalkSpeed",
-    Range = {16, 250},
+    Range = {16, 500},
     Increment = 1,
     CurrentValue = 16,
-    Callback = function(v) Settings.Speed = v end
+    Callback = function(v) LocalPlayer.Character.Humanoid.WalkSpeed = v end
 })
-
-MoveTab:CreateKeybind({
-    Name = "Fly Toggle",
-    CurrentKeybind = "F",
-    HoldToInteract = false,
-    Callback = function()
-        Settings.Fly = not Settings.Fly
-    end
-})
-
-MoveTab:CreateSlider({Name = "Fly Speed", Range = {10, 300}, Increment = 5, CurrentValue = 50, Callback = function(v) Settings.FlySpeed = v end})
-
---- [LOOPS] ---
-RunService.RenderStepped:Connect(function()
-    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-        LocalPlayer.Character.Humanoid.WalkSpeed = Settings.Speed
-        
-        -- Fly Logic
-        if Settings.Fly then
-            LocalPlayer.Character.HumanoidRootPart.Velocity = workspace.CurrentCamera.CFrame.LookVector * Settings.FlySpeed
-        end
-        
-        -- ESP Logic (Scanning for tags in Bodycam games)
-        if _G.EnemyESP then
-            for _, p in pairs(Players:GetPlayers()) do
-                if p.Team ~= LocalPlayer.Team and p.Character then
-                    CreateESP(p.Character, "Enemy", Settings.EnemyColor)
-                end
-            end
-        end
-    end
-end)
