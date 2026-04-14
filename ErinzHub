@@ -1,94 +1,69 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
--- [[ CONFIG ]]
-local AdminKey = "erin01"
-local DeathPos = nil
-local LocalPlayer = game.Players.LocalPlayer
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-
 local Window = Rayfield:CreateWindow({
-   Name = "SPTE | Executive Dev-Panel",
-   LoadingTitle = "Infiltrating SPTE Database...",
+   Name = "SPTE | Mission & Rewards Hub",
+   LoadingTitle = "Hijacking Storyline...",
    KeySystem = true,
    KeySettings = {
-      Title = "Owner Access",
+      Title = "Executive Access",
       Note = "Key: erin01",
-      Key = {AdminKey}
+      Key = {"erin01"}
    }
 })
 
---- [TAB 1: PRODUCT MANIPULATOR] ---
-local ShopTab = Window:CreateTab("Dev-Products", 4483362458)
+-- [[ THE MISSION EXPLOIT ]]
+local MissionTab = Window:CreateTab("Quests", 4483362458)
 
-ShopTab:CreateSection("Force-Trigger Purchase Rewards")
-
-local Products = {
-    ["1k Tokens"] = "AddTokens_1k",
-    ["10k Tokens"] = "AddTokens_10k",
-    ["Infinite Aura"] = "GrantAura_Pass",
-    ["2x All Stats"] = "DoubleStats_Product"
-}
-
-for Name, Remote in pairs(Products) do
-    ShopTab:CreateButton({
-        Name = "Exploit: " .. Name,
-        Callback = function()
-            -- We search for the specific reward remote that fires AFTER a purchase
-            local r = ReplicatedStorage:FindFirstChild(Remote, true)
-            if r then
-                r:FireServer()
-                Rayfield:Notify({Title = "Remote Fired", Content = "Attempting to force reward for " .. Name})
-            else
-                Rayfield:Notify({Title = "Error", Content = "Remote not found in this session."})
+MissionTab:CreateToggle({
+    Name = "Auto-Skip Missions (Massive Rewards)",
+    CurrentValue = false,
+    Callback = function(v)
+        _G.AutoMission = v
+        task.spawn(function()
+            while _G.AutoMission do
+                -- The remote you found
+                local args = {
+                    [1] = {
+                        [1] = "NextMission",
+                        [2] = "Main"
+                    }
+                }
+                game:GetService("ReplicatedStorage").RemoteEvent:FireServer(unpack(args))
+                
+                -- Ping the server so it registers the completion
+                game:GetService("ReplicatedStorage").PingEvent:FireServer()
+                
+                -- Fast but safe delay to prevent kick
+                task.wait(0.5) 
             end
-        end
-    })
-end
-
---- [TAB 2: OWNER ADMIN PANEL] ---
-local AdminTab = Window:CreateTab("Admin Panel", 4483362458)
-
-AdminTab:CreateButton({
-    Name = "Search for Hidden Owner Panel",
-    Callback = function()
-        -- Scans PlayerGui for hidden Admin/Owner Menus
-        local found = false
-        for _, gui in pairs(LocalPlayer.PlayerGui:GetChildren()) do
-            if gui.Name:lower():find("admin") or gui.Name:lower():find("owner") or gui.Name:lower():find("mod") then
-                gui.Enabled = true
-                for _, frame in pairs(gui:GetDescendants()) do if frame:IsA("Frame") then frame.Visible = true end end
-                found = true
-            end
-        end
-        
-        -- Scans for Admin Remotes
-        for _, v in pairs(ReplicatedStorage:GetDescendants()) do
-            if v:IsA("RemoteEvent") and (v.Name:lower():find("admin") or v.Name:lower():find("owner")) then
-                print("FOUND ADMIN REMOTE: " .. v.Name)
-                found = true
-            end
-        end
-        
-        if found then
-            Rayfield:Notify({Title = "Success", Content = "Found potential Admin assets. Check your screen/console!"})
-        else
-            Rayfield:Notify({Title = "Not Found", Content = "Owner panel is likely server-locked."})
-        end
+        end)
     end
 })
 
---- [TAB 3: AFK SECURITY] ---
-local AfkTab = Window:CreateTab("AFK Anchor", 4483362458)
+MissionTab:CreateButton({
+    Name = "Complete 10 Missions Instantly",
+    Callback = function()
+        for i = 1, 10 do
+            local args = {[1] = {[1] = "NextMission", [2] = "Main"}}
+            game:GetService("ReplicatedStorage").RemoteEvent:FireServer(unpack(args))
+            task.wait(0.1)
+        end
+        Rayfield:Notify({Title = "Success", Content = "Skipped 10 Chapters."})
+    end
+})
 
-AfkTab:CreateToggle({
-    Name = "Auto-Spawn & Return",
+-- [[ THE ESSENTIALS ]]
+local MainTab = Window:CreateTab("Utility", 4483362458)
+
+MainTab:CreateToggle({
+    Name = "Auto-Spawn & Return (Death Anchor)",
     CurrentValue = true,
     Callback = function(v) _G.AutoRespawn = v end
 })
 
--- [[ THE ENGINE ]]
+-- [[ ENGINE OVERRIDE ]]
 local function ForceSpawn()
-    local pGui = LocalPlayer:WaitForChild("PlayerGui")
+    local pGui = game.Players.LocalPlayer:WaitForChild("PlayerGui")
     for _, v in pairs(pGui:GetDescendants()) do
         if v:IsA("TextButton") and v.Text:upper():find("SPAWN") and v.Visible then
             local x, y = v.AbsolutePosition.X + (v.AbsoluteSize.X / 2), v.AbsolutePosition.Y + (v.AbsoluteSize.Y / 2)
@@ -99,13 +74,13 @@ local function ForceSpawn()
     end
 end
 
-LocalPlayer.CharacterAdded:Connect(function(char)
+game.Players.LocalPlayer.CharacterAdded:Connect(function(char)
     if _G.AutoRespawn then
         task.spawn(ForceSpawn)
         task.wait(1.5)
-        if DeathPos then char:WaitForChild("HumanoidRootPart").CFrame = DeathPos end
+        if _G.DeathPos then char:WaitForChild("HumanoidRootPart").CFrame = _G.DeathPos end
     end
     char:WaitForChild("Humanoid").Died:Connect(function()
-        if char:FindFirstChild("HumanoidRootPart") then DeathPos = char.HumanoidRootPart.CFrame end
+        if char:FindFirstChild("HumanoidRootPart") then _G.DeathPos = char.HumanoidRootPart.CFrame end
     end)
 end)
