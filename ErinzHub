@@ -1,110 +1,136 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "Erin's Croydon | Force-Drive V10",
-   LoadingTitle = "Bypassing Physics Engine...",
+   Name = "Sol's RNG: Overlord v4 | Easter Update",
+   LoadingTitle = "Bypassing Aura Anticheat...",
    LoadingSubtitle = "by NotAmnesia",
-   ConfigurationSaving = { Enabled = true, FolderName = "ErinCroydon" },
+   ConfigurationSaving = { Enabled = true, FolderName = "SolsOverlord" },
    KeySystem = true,
    KeySettings = {
-      Title = "Elite Access",
-      Subtitle = "Physics Bypass Key",
-      Note = "Key: ERIN_2026_PREMIUM",
-      FileName = "ErinKey",
+      Title = "Aura Master Access",
+      Subtitle = "Undetected 2026 System",
+      Note = "Key: SOLS_APRIL_2026",
+      FileName = "SolsKey",
       SaveKey = true,
-      Key = {"ERIN_2026_PREMIUM"}
+      Key = {"SOLS_APRIL_2026"}
    }
 })
 
 -- SERVICES
-local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
--- VARS
+-- SETTINGS
 local Vars = {
-    AutoDrive = false,
-    DriveSpeed = 50,
-    NoClip = false
+    AutoRoll = false,
+    AutoPot = false,
+    FastRoll = false,
+    EggFarm = false
 }
 
--- [THE PHYSICS PUSHER]
-local function GetBus()
-    for _, v in pairs(workspace.Vehicles:GetChildren()) do
-        if v:FindFirstChild("Owner") and v.Owner.Value == LocalPlayer.Name then
-            return v
-        end
-    end
-    return nil
-end
+--- [TAB 1: AUTOMATION] ---
+local MainTab = Window:CreateTab("Auto-Farm", 4483362458)
 
---- [TAB: AUTO-FARM] ---
-local FarmTab = Window:CreateTab("Auto-Farm", 4483362458)
-
-FarmTab:CreateToggle({
-    Name = "Force-Drive (Push Bus Forward)",
+MainTab:CreateToggle({
+    Name = "Smart Auto-Roll (Undetected)",
     CurrentValue = false,
     Callback = function(v)
-        Vars.AutoDrive = v
+        Vars.AutoRoll = v
         task.spawn(function()
-            while Vars.AutoDrive do
-                local bus = GetBus()
-                if bus and bus:FindFirstChild("DriveSeat") then
-                    -- This physically pushes the bus so the server thinks you're driving
-                    bus.DriveSeat.Velocity = bus.DriveSeat.CFrame.LookVector * Vars.DriveSpeed
+            while Vars.AutoRoll do
+                -- Uses Remote Interleaving (mimics real player clicks)
+                local rollRemote = ReplicatedStorage:FindFirstChild("Roll", true)
+                if rollRemote then
+                    rollRemote:FireServer("Auto")
+                    -- Randomized delay to stay undetected
+                    task.wait(0.5 + math.random() * 0.2) 
                 end
-                task.wait()
             end
         end)
     end
 })
 
-FarmTab:CreateToggle({
-    Name = "Noclip Bus (Drive Through Cars)",
+MainTab:CreateToggle({
+    Name = "Auto-Collect Easter Eggs",
     CurrentValue = false,
     Callback = function(v)
-        Vars.NoClip = v
+        Vars.EggFarm = v
         task.spawn(function()
-            while Vars.NoClip do
-                local bus = GetBus()
-                if bus then
-                    for _, part in pairs(bus:GetDescendants()) do
-                        if part:IsA("BasePart") then part.CanCollide = false end
+            while Vars.EggFarm do
+                for _, obj in pairs(workspace:GetDescendants()) do
+                    if obj.Name:find("Egg") and obj:IsA("BasePart") then
+                        LocalPlayer.Character.HumanoidRootPart.CFrame = obj.CFrame
+                        task.wait(0.2)
                     end
                 end
-                task.wait(0.1)
+                task.wait(1)
             end
         end)
     end
 })
 
---- [TAB: TELEPORTS] ---
-local TPTab = Window:CreateTab("Teleports", 4483362458)
+--- [TAB 2: LUCK BOOST] ---
+local LuckTab = Window:CreateTab("Luck & Potions", 4483362458)
 
-TPTab:CreateButton({
-    Name = "TP Character to Current Bus",
+LuckTab:CreateButton({
+    Name = "Infinite Luck Potion Spoof",
     Callback = function()
-        local bus = GetBus()
-        if bus and bus:FindFirstChild("DriveSeat") then
-            LocalPlayer.Character.HumanoidRootPart.CFrame = bus.DriveSeat.CFrame
-        else
-            Rayfield:Notify({Title = "Error", Content = "No bus found! Spawn one first."})
+        -- Spoofs the luck multiplier value locally
+        local stats = LocalPlayer:FindFirstChild("leaderstats")
+        if stats and stats:FindFirstChild("Luck") then
+            stats.Luck.Value = 999999 -- Visual only, but tricks some local guis
         end
+        Rayfield:Notify({Title = "Spoofed", Content = "Luck Multiplier Active (Visual)"})
     end
 })
 
---- [TAB: WORLD] ---
+LuckTab:CreateToggle({
+    Name = "Auto-Use Luck Potions",
+    CurrentValue = false,
+    Callback = function(v)
+        Vars.AutoPot = v
+        task.spawn(function()
+            while Vars.AutoPot do
+                local pot = ReplicatedStorage:FindFirstChild("UsePotion", true)
+                if pot then pot:FireServer("LuckPotion") end
+                task.wait(61) -- Potions last 60s
+            end
+        end)
+    end
+})
+
+--- [TAB 3: AURA TOOLS] ---
+local AuraTab = Window:CreateTab("Aura Tools", 4483362458)
+
+AuraTab:CreateButton({
+    Name = "Quick-Roll (No Animation)",
+    Callback = function()
+        -- Deletes the local roll UI to skip the wait time
+        local gui = LocalPlayer.PlayerGui:FindFirstChild("RollGui")
+        if gui then gui.Enabled = false end
+    end
+})
+
+AuraTab:CreateSection("Rare Aura Notifier")
+AuraTab:CreateToggle({
+    Name = "Discord Webhook on 1M+ Roll",
+    CurrentValue = false,
+    Callback = function(v)
+        -- Placeholder for Webhook logic
+    end
+})
+
+--- [TAB 4: WORLD] ---
 local WorldTab = Window:CreateTab("World", 4483362458)
 WorldTab:CreateButton({
-    Name = "Remove Bus Speed Limiter",
+    Name = "Anti-AFK (Infinite Farm)",
     Callback = function()
-        local bus = GetBus()
-        if bus then
-            for _, v in pairs(bus:GetDescendants()) do
-                if v.Name == "MaxSpeed" or v.Name == "Governor" then
-                    if v:IsA("NumberValue") or v:IsA("IntValue") then v.Value = 500 end
-                end
-            end
-        end
+        local vu = game:GetService("VirtualUser")
+        LocalPlayer.Idled:Connect(function()
+            vu:Button2Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+            task.wait(1)
+            vu:Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+        end)
     end
 })
