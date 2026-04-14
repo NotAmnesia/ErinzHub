@@ -1,14 +1,14 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "Erin's Croydon Ghost Driver",
-   LoadingTitle = "Mapping Croydon Roads...",
+   Name = "Erin's Croydon | Money Master",
+   LoadingTitle = "Bypassing Economy Encryption...",
    LoadingSubtitle = "by NotAmnesia",
    ConfigurationSaving = { Enabled = true, FolderName = "ErinCroydon" },
    KeySystem = true,
    KeySettings = {
-      Title = "Elite Driver Access",
-      Subtitle = "2026 Pathfinding System",
+      Title = "Elite Access",
+      Subtitle = "Money Farm Key",
       Note = "Key: ERIN_2026_PREMIUM",
       FileName = "ErinKey",
       SaveKey = true,
@@ -17,109 +17,71 @@ local Window = Rayfield:CreateWindow({
 })
 
 -- SERVICES
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
-local TweenService = game:GetService("TweenService")
-local RunService = game:GetService("RunService")
 
--- SETTINGS
-local Vars = {
-    AutoDrive = false,
-    DriveSpeed = 40, -- MPH (Keeps it realistic to avoid bans)
-    CurrentBus = nil
-}
+--- [TAB: THE MONEY HUB] ---
+local MoneyTab = Window:CreateTab("Money & XP", 4483362458)
 
--- [THE GHOST DRIVE ENGINE]
-local function GetBus()
-    for _, v in pairs(workspace.Vehicles:GetChildren()) do
-        if v:FindFirstChild("Owner") and v.Owner.Value == LocalPlayer.Name then
-            return v
+MoneyTab:CreateSection("Economy Exploits")
+
+MoneyTab:CreateButton({
+    Name = "Claim All 'Ghost' Stop Rewards",
+    Callback = function()
+        -- This attempts to fire the 'PassengerBoarded' or 'RouteComplete' remotes
+        -- These are the only way to get money in Croydon.
+        local events = {"AddCredits", "CompleteStop", "GiveReward", "UpdateBalance"}
+        
+        for _, name in pairs(events) do
+            local remote = ReplicatedStorage:FindFirstChild(name, true)
+            if remote and remote:IsA("RemoteEvent") then
+                remote:FireServer(999) -- Attempting to spoof a high reward
+                Rayfield:Notify({Title = "Remote Fired", Content = "Attempting to sync: " .. name})
+            end
         end
     end
-    return nil
-end
+})
 
-local function DriveTo(targetCFrame)
-    local bus = GetBus()
-    if not bus or not bus:FindFirstChild("DriveSeat") then return end
-    
-    local dist = (bus.DriveSeat.Position - targetCFrame.Position).Magnitude
-    local duration = dist / (Vars.DriveSpeed * 1.467) -- Conversion to studs/sec
-    
-    local tween = TweenService:Create(bus.DriveSeat, TweenInfo.new(duration, Enum.EasingStyle.Linear), {CFrame = targetCFrame})
-    tween:Play()
-    return tween
-end
+--- [TAB: THE AUTO-DRIVE FIX] ---
+local FarmTab = Window:CreateTab("Auto-Farm Fix", 4483362458)
 
---- [TAB: AFK AUTO-DRIVE] ---
-local AFKTab = Window:CreateTab("AFK Route", 4483362458)
-
-AFKTab:CreateToggle({
-    Name = "Start Auto-Route (Follow Roads)",
+FarmTab:CreateToggle({
+    Name = "Legit-Mode Auto Stop",
     CurrentValue = false,
     Callback = function(v)
-        Vars.AutoDrive = v
+        _G.AutoFarm = v
         task.spawn(function()
-            while Vars.AutoDrive do
-                -- 1. Find the Next Stop in your Route List
-                local nextStop = LocalPlayer.PlayerGui:FindFirstChild("RouteGui", true) 
-                -- Note: This logic assumes you have selected a route in-game
-                
-                -- 2. Instead of TP, we move smoothly to the next stop
-                -- We find the 'StopPart' inside workspace.Map.Stops
-                for _, stop in pairs(workspace.Map.Stops:GetChildren()) do
-                    if not Vars.AutoDrive then break end
-                    
-                    -- This logic simulates driving stop-to-stop
-                    local t = DriveTo(stop.CFrame * CFrame.new(0, 5, 0))
-                    if t then 
-                        t.Completed:Wait() 
-                        task.wait(5) -- Wait for passengers to board
+            while _G.AutoFarm do
+                pcall(function()
+                    -- Instead of Tweening, this snaps your CHARACTER to the stop
+                    -- Sometimes the game rewards the player even if the bus isn't there
+                    local route = LocalPlayer:FindFirstChild("CurrentRoute", true)
+                    if route then
+                        for _, stop in pairs(route:GetChildren()) do
+                            if not _G.AutoFarm then break end
+                            LocalPlayer.Character.HumanoidRootPart.CFrame = stop.CFrame
+                            task.wait(3) -- Time for passengers to 'load'
+                        end
                     end
-                end
+                end)
                 task.wait(1)
             end
         end)
     end
 })
 
---- [TAB: BUS CONFIG] ---
-local ConfigTab = Window:CreateTab("Bus Settings", 4483362458)
+--- [TAB: TELEPORTS] ---
+local TPTab = Window:CreateTab("Teleports", 4483362458)
+TPTab:CreateButton({Name = "TP to Spawner", Callback = function() LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(-34, 12, 110) end})
+TPTab:CreateButton({Name = "TP to City Center", Callback = function() LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(-200, 15, 500) end})
 
-ConfigTab:CreateSlider({
-    Name = "Cruise Speed (MPH)",
-    Range = {20, 100},
-    Increment = 5,
-    CurrentValue = 40,
-    Callback = function(v) Vars.DriveSpeed = v end
-})
-
-ConfigTab:CreateButton({
-    Name = "Fix Stuck Bus (Noclip)",
-    Callback = function()
-        local bus = GetBus()
-        if bus then
-            for _, p in pairs(bus:GetDescendants()) do
-                if p:IsA("BasePart") then p.CanCollide = false end
-            end
-            task.wait(3)
-            for _, p in pairs(bus:GetDescendants()) do
-                if p:IsA("BasePart") then p.CanCollide = true end
-            end
-        end
-    end
-})
-
---- [TAB: STAFF TOOLS] ---
-local StaffTab = Window:CreateTab("Staff Mode", 4483362458)
-StaffTab:CreateButton({
-    Name = "Bypass Speed Limiter",
-    Callback = function()
-        -- Croydon has a script that slows buses down. This disables it locally.
-        for _, v in pairs(GetBus():GetDescendants()) do
-            if v.Name == "Limiter" or v.Name == "SpeedGovernor" then
-                v:Destroy()
-            end
-        end
-    end
+--- [TAB: PLAYER] ---
+local PlayerTab = Window:CreateTab("Player", 4483362458)
+PlayerTab:CreateSlider({
+    Name = "WalkSpeed",
+    Range = {16, 150},
+    Increment = 1,
+    CurrentValue = 16,
+    Callback = function(v) LocalPlayer.Character.Humanoid.WalkSpeed = v end
 })
