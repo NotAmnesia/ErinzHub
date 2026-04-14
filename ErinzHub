@@ -1,56 +1,162 @@
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+local Window = Rayfield:CreateWindow({
+   Name = "Erin's Royale Elite | 2026 Ultimate",
+   LoadingTitle = "Initializing Royal Protocols...",
+   LoadingSubtitle = "by NotAmnesia",
+   ConfigurationSaving = { Enabled = true, FolderName = "ErinRoyale" },
+   KeySystem = true,
+   KeySettings = {
+      Title = "Premium Access",
+      Subtitle = "Key System",
+      Note = "Key: ERIN_2026_PREMIUM",
+      FileName = "ErinKey",
+      SaveKey = true,
+      Key = {"ERIN_2026_PREMIUM"}
+   }
+})
+
+-- SERVICES
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local TweenService = game:GetService("TweenService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+-- SETTINGS
+local Vars = {
+    AutoDiamonds = false,
+    MusicalChairs = false,
+    FarmSpeed = 120
+}
+
+-- [GHOST TWEEN ENGINE]
+local function SmoothMove(target)
+    if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return end
+    local dist = (LocalPlayer.Character.HumanoidRootPart.Position - target.Position).Magnitude
+    local tween = TweenService:Create(LocalPlayer.Character.HumanoidRootPart, TweenInfo.new(dist / Vars.FarmSpeed, Enum.EasingStyle.Linear), {CFrame = target})
+    tween:Play()
+    return tween
+end
+
+--- [TAB 1: MAIN] ---
+local MainTab = Window:CreateTab("Main Menu", 4483362458)
+MainTab:CreateSection("------- Main -------")
+MainTab:CreateToggle({
+    Name = "Auto Collect Diamonds",
+    CurrentValue = false,
+    Callback = function(v)
+        Vars.AutoDiamonds = v
+        task.spawn(function()
+            while Vars.AutoDiamonds do
+                for _, obj in pairs(workspace:GetDescendants()) do
+                    if not Vars.AutoDiamonds then break end
+                    if (obj.Name:find("Diamond") or obj.Name:find("Lolly")) and obj:IsA("BasePart") then
+                        local t = SmoothMove(obj.CFrame)
+                        if t then t.Completed:Wait() end
+                        task.wait(0.3)
+                    end
+                end
+                task.wait(1)
+            end
+        end)
+    end
+})
+MainTab:CreateToggle({Name = "Auto Win Chairs Game", CurrentValue = false, Callback = function(v) Vars.MusicalChairs = v end})
+MainTab:CreateToggle({Name = "Auto Farm Art Game", CurrentValue = false, Callback = function(v) end})
+MainTab:CreateToggle({Name = "Auto-Farm Art Game + Draw", CurrentValue = false, Callback = function(v) end})
+
+MainTab:CreateSection("------- Misc -------")
+MainTab:CreateToggle({
+    Name = "Anti-Afk",
+    CurrentValue = true,
+    Callback = function(v)
+        local VU = game:GetService("VirtualUser")
+        LocalPlayer.Idled:Connect(function() VU:CaptureController(); VU:ClickButton2(Vector2.new()) end)
+    end
+})
+MainTab:CreateButton({Name = "Auto Collect Chests", Callback = function() end})
+MainTab:CreateButton({Name = "Auto Answer Captcha", Callback = function() end})
+MainTab:CreateButton({Name = "Auto Farm Fountain", Callback = function() end})
+MainTab:CreateButton({Name = "Auto Tidy TextBooks", Callback = function() end})
+
+--- [TAB 2: CAMPUS 4 CLASS] ---
+local C4ClassTab = Window:CreateTab("Campus 4 Class", 4483362458)
+C4ClassTab:CreateButton({Name = "Auto Fountain CP4", Callback = function() end})
+C4ClassTab:CreateButton({Name = "Auto Complete Potionology", Callback = function() end})
+C4ClassTab:CreateButton({Name = "Auto Complete Homework", Callback = function() end})
+C4ClassTab:CreateButton({Name = "Auto Complete StarGazing", Callback = function() end})
+C4ClassTab:CreateButton({Name = "Auto Answer Computer", Callback = function() end})
+C4ClassTab:CreateButton({Name = "Auto Collect Fairy Circle", Callback = function() end})
+C4ClassTab:CreateButton({Name = "Auto Farm Basketball", Callback = function() end})
+C4ClassTab:CreateButton({Name = "Auto Answer English", Callback = function() end})
+C4ClassTab:CreateButton({Name = "Auto Swim Spinner", Callback = function() end})
+C4ClassTab:CreateButton({Name = "Auto Farm Archery", Callback = function() end})
+C4ClassTab:CreateButton({Name = "Auto Sleep Night", Callback = function() end})
+C4ClassTab:CreateButton({Name = "Auto Rush Store", Callback = function() end})
+C4ClassTab:CreateButton({Name = "Auto Skip Night", Callback = function() end})
+C4ClassTab:CreateButton({Name = "Auto Lunch", Callback = function() end})
+
+--- [TAB 3: CAMPUS 4 OTHERS] ---
+local C4OtherTab = Window:CreateTab("Campus 4 Others", 4483362458)
+C4OtherTab:CreateButton({Name = "Auto Skip Night", Callback = function() end})
+C4OtherTab:CreateButton({Name = "Auto Complete MiniQuest", Callback = function() end})
+C4OtherTab:CreateButton({Name = "Auto Fountain CP4 (Solo Farm)", Callback = function() end})
+
+--- [TAB 4: CAMPUS 2 CLASS] ---
+local C2ClassTab = Window:CreateTab("Campus 2 Class", 4483362458)
+C2ClassTab:CreateButton({Name = "Farm English Class", Callback = function() end})
+C2ClassTab:CreateButton({Name = "Farm Art Class", Callback = function() end})
+C2ClassTab:CreateButton({Name = "Farm Computer Class", Callback = function() end})
+C2ClassTab:CreateButton({Name = "Farm Chemistry Class", Callback = function() end})
+C2ClassTab:CreateButton({Name = "Farm Swimming Class", Callback = function() end})
+C2ClassTab:CreateButton({Name = "Farm PE Class", Callback = function() end})
+
+--- [TAB 5: CAMPUS 2 OTHERS] ---
+local C2OtherTab = Window:CreateTab("Campus 2 Others", 4483362458)
+C2OtherTab:CreateButton({Name = "Auto Collect RHD After Class", Callback = function() end})
+C2OtherTab:CreateButton({Name = "Auto Teleport To Class", Callback = function() end})
+
+--- [TAB 6: STAFF & SPOOF] ---
 local StaffTab = Window:CreateTab("Staff Spoof", 4483362458)
-
-StaffTab:CreateSection("Appearance Spoof (Client-Side)")
-
 StaffTab:CreateButton({
-    Name = "Equip Callmehbob Outfit",
+    Name = "Equip Staff Outfit (Local)",
     Callback = function()
-        -- Copies the creator's current avatar look to your character
-        LocalPlayer.CharacterAppearanceId = 2470023 -- callmehbob's ID
-        if LocalPlayer.Character then
-            LocalPlayer.Character:BreakJoints() -- Reset to apply look
-        end
-        Rayfield:Notify({Title = "Staff Spoof", Content = "Loaded Creator Outfit (Local Only)"})
+        LocalPlayer.CharacterAppearanceId = 2470023 -- Callmehbob
+        LocalPlayer.Character:BreakJoints()
     end
 })
-
 StaffTab:CreateButton({
-    Name = "Equip CMBR (Creator Ring)",
+    Name = "Bypass 'Developer' Badge Check",
     Callback = function()
-        -- Spoofs the rarest item in the game
-        local Ring = Instance.new("Part")
-        Ring.Name = "CreatorRingSpoof"
-        -- This logic creates a glowing ring effect around your hand
-        Rayfield:Notify({Title = "Item Spoof", Content = "Creator Ring Visual Active."})
-    end
-})
-
-StaffTab:CreateSection("Badge & Status Spoof")
-
-StaffTab:CreateButton({
-    Name = "Spoof 'Developer' Badge",
-    Callback = function()
-        -- Many scripts/UIs in game check for badge ownership
-        -- This hooks the "UserHasBadge" function
-        local mt = getrawmetatable(game)
+        local mt = getrawmetatable(game); setreadonly(mt, false)
         local old = mt.__namecall
-        setreadonly(mt, false)
-        
         mt.__namecall = newcclosure(function(self, ...)
-            local method = getnamecallmethod()
-            if method == "UserHasBadgeAsync" then return true end
+            if getnamecallmethod() == "UserHasBadgeAsync" then return true end
             return old(self, ...)
         end)
         setreadonly(mt, true)
-        Rayfield:Notify({Title = "Badge Spoof", Content = "Game now thinks you have all Staff Badges."})
     end
 })
 
-StaffTab:CreateToggle({
-    Name = "Fake 'Staff' Overhead UI",
-    CurrentValue = false,
-    Callback = function(v)
-        -- Toggles a fake name tag above your head that says [DEVELOPER]
-        -- Warning: Only you can see this unless the game has a weak UI system
+--- [TAB 7: MISC MENU] ---
+local MiscMenu = Window:CreateTab("Misc Menu", 4483362458)
+MiscMenu:CreateSection("------- Statistics -------")
+local LvLabel = MiscMenu:CreateLabel("Level Progression: Scoped")
+local ChLabel = MiscMenu:CreateLabel("Chests Detected: 0")
+local DiLabel = MiscMenu:CreateLabel("Diamonds Detected: 0")
+local FtLabel = MiscMenu:CreateLabel("Fountain Timer: Ready")
+local PcLabel = MiscMenu:CreateLabel("Player Count: " .. #Players:GetPlayers())
+
+-- [STAT LOOP]
+task.spawn(function()
+    while task.wait(5) do
+        local d = 0; local c = 0
+        for _, v in pairs(workspace:GetDescendants()) do
+            if v.Name:find("Diamond") then d = d + 1 end
+            if v.Name:find("Chest") then c = c + 1 end
+        end
+        DiLabel:Set("Diamonds Detected: " .. d)
+        ChLabel:Set("Chests Detected: " .. c)
+        PcLabel:Set("Player Count: " .. #Players:GetPlayers())
     end
-})
+end)
