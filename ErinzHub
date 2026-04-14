@@ -1,158 +1,131 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "Erin's Combat & Visuals",
-   LoadingTitle = "Optimizing Render Engine...",
+   Name = "Erin's Stealth Combat",
+   LoadingTitle = "Bypassing Internal Checks...",
    LoadingSubtitle = "by NotAmnesia",
-   ConfigurationSaving = { Enabled = true, FolderName = "ErinCombat" }
+   ConfigurationSaving = { Enabled = true, FolderName = "ErinStealth" }
 })
 
--- SERVICES & VARIABLES
-local Camera = workspace.CurrentCamera
+-- SERVICES
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local RunService = game:GetService("RunService")
+local Camera = workspace.CurrentCamera
 
-local ESPSettings = {
-    Enabled = false,
-    Boxes = false,
-    Names = false,
-    Health = false,
-    Tracers = false,
+-- SETTINGS
+local StealthSettings = {
+    Aimbot = false,
+    ESP = false,
     TeamCheck = false,
-    Thickness = 1.5,
-    Color = Color3.fromRGB(255, 0, 0)
+    FOV = 150,
+    Sensitivity = 0.2, -- Smoothness
+    AimPart = "Head",
+    FillColor = Color3.fromRGB(255, 0, 0),
+    OutlineColor = Color3.fromRGB(255, 255, 255)
 }
 
-local AimbotSettings = {
-    Enabled = false,
-    TeamCheck = false,
-    AliveCheck = true,
-    Sensitivity = 0.2,
-    FieldOfView = 150,
-    AimPart = "Head"
-}
-
--- [AIMBOT LOGIC - UNCHANGED AS REQUESTED]
-local FOVCircle = Drawing.new("Circle")
-FOVCircle.Thickness = 1
-FOVCircle.NumSides = 60
-FOVCircle.Radius = AimbotSettings.FieldOfView
-FOVCircle.Filled = false
-FOVCircle.Visible = false
-FOVCircle.Color = Color3.fromRGB(255, 255, 255)
-
-local function GetClosestPlayer()
-    local MaximumDistance = AimbotSettings.FieldOfView
-    local Target = nil
+-- [AIMBOT - MAINTAINED ACCURACY]
+local function GetClosest()
+    local nearest = nil
+    local lastDist = StealthSettings.FOV
     for _, v in pairs(Players:GetPlayers()) do
-        if v ~= LocalPlayer and v.Character and v.Character:FindFirstChild(AimbotSettings.AimPart) then
-            if AimbotSettings.TeamCheck and v.Team == LocalPlayer.Team then continue end
-            if AimbotSettings.AliveCheck and v.Character:FindFirstChild("Humanoid") and v.Character.Humanoid.Health <= 0 then continue end
-            local ScreenPoint = Camera:WorldToScreenPoint(v.Character[AimbotSettings.AimPart].Position)
-            local VectorDistance = (Vector2.new(ScreenPoint.X, ScreenPoint.Y) - Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)).Magnitude
-            if VectorDistance < MaximumDistance then
-                Target = v
-                MaximumDistance = VectorDistance
+        if v ~= LocalPlayer and v.Character and v.Character:FindFirstChild(StealthSettings.AimPart) then
+            if StealthSettings.TeamCheck and v.Team == LocalPlayer.Team then continue end
+            local pos, onScreen = Camera:WorldToScreenPoint(v.Character[StealthSettings.AimPart].Position)
+            if onScreen then
+                local dist = (Vector2.new(pos.X, pos.Y) - Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)).Magnitude
+                if dist < lastDist then
+                    lastDist = dist
+                    nearest = v
+                end
             end
         end
     end
-    return Target
+    return nearest
 end
 
--- [GOD-TIER ESP SYSTEM]
-local function CreateESP(Player)
-    local Box = Drawing.new("Square")
-    local Name = Drawing.new("Text")
-    local HealthBar = Drawing.new("Line")
-    local Tracer = Drawing.new("Line")
-
-    local function Update()
-        local Connection
-        Connection = RunService.RenderStepped:Connect(function()
-            if ESPSettings.Enabled and Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") and Player.Character:FindFirstChild("Humanoid") and Player.Character.Humanoid.Health > 0 then
-                if ESPSettings.TeamCheck and Player.Team == LocalPlayer.Team then
-                    Box.Visible = false; Name.Visible = false; HealthBar.Visible = false; Tracer.Visible = false
-                    return
-                end
-
-                local Pos, OnScreen = Camera:WorldToViewportPoint(Player.Character.HumanoidRootPart.Position)
-                if OnScreen then
-                    -- Box Math
-                    local Size = (Camera:WorldToViewportPoint(Player.Character.HumanoidRootPart.Position - Vector3.new(0, 3, 0)).Y - Camera:WorldToViewportPoint(Player.Character.HumanoidRootPart.Position + Vector3.new(0, 2.6, 0)).Y)
-                    local BoxSize = Vector2.new(Size / 1.5, Size)
-                    local BoxPos = Vector2.new(Pos.X - BoxSize.X / 2, Pos.Y - BoxSize.Y / 2)
-
-                    -- Render Box
-                    Box.Visible = ESPSettings.Boxes
-                    Box.Size = BoxSize
-                    Box.Position = BoxPos
-                    Box.Color = ESPSettings.Color
-                    Box.Thickness = ESPSettings.Thickness
-
-                    -- Render Name
-                    Name.Visible = ESPSettings.Names
-                    Name.Text = Player.Name
-                    Name.Position = Vector2.new(BoxPos.X + BoxSize.X / 2, BoxPos.Y - 16)
-                    Name.Outline = true
-                    Name.Center = true
-                    Name.Size = 14
-
-                    -- Render Health
-                    HealthBar.Visible = ESPSettings.Health
-                    local HealthPct = Player.Character.Humanoid.Health / Player.Character.Humanoid.MaxHealth
-                    HealthBar.From = Vector2.new(BoxPos.X - 5, BoxPos.Y + BoxSize.Y)
-                    HealthBar.To = Vector2.new(BoxPos.X - 5, BoxPos.Y + BoxSize.Y - (Size * HealthPct))
-                    HealthBar.Color = Color3.fromRGB(255 - (255 * HealthPct), 255 * HealthPct, 0)
-                    HealthBar.Thickness = 2
-
-                    -- Render Tracer
-                    Tracer.Visible = ESPSettings.Tracers
-                    Tracer.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
-                    Tracer.To = Vector2.new(Pos.X, Pos.Y + BoxSize.Y / 2)
-                    Tracer.Color = ESPSettings.Color
-                else
-                    Box.Visible = false; Name.Visible = false; HealthBar.Visible = false; Tracer.Visible = false
-                end
-            else
-                Box.Visible = false; Name.Visible = false; HealthBar.Visible = false; Tracer.Visible = false
-                if not Player.Parent then Connection:Disconnect() end
-            end
-        end)
-    end
-    coroutine.wrap(Update)()
-end
-
--- Initialize ESP for existing and new players
-for _, v in pairs(Players:GetPlayers()) do if v ~= LocalPlayer then CreateESP(v) end end
-Players.PlayerAdded:Connect(function(v) CreateESP(v) end)
-
--- [MAIN LOOP FOR AIMBOT & FOV]
 RunService.RenderStepped:Connect(function()
-    FOVCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
-    if AimbotSettings.Enabled then
-        local Target = GetClosestPlayer()
-        if Target then
-            Camera.CFrame = Camera.CFrame:Lerp(CFrame.new(Camera.CFrame.Position, Target.Character[AimbotSettings.AimPart].Position), AimbotSettings.Sensitivity)
+    if StealthSettings.Aimbot then
+        local target = GetClosest()
+        if target then
+            Camera.CFrame = Camera.CFrame:Lerp(CFrame.new(Camera.CFrame.Position, target.Character[StealthSettings.AimPart].Position), StealthSettings.Sensitivity)
+        end
+    end
+end)
+
+-- [STEALTH HIGHLIGHT ESP]
+local function ApplyESP(player)
+    local function CreateHighlight()
+        if player.Character then
+            local highlight = player.Character:FindFirstChild("ErinHighlight") or Instance.new("Highlight")
+            highlight.Name = "ErinHighlight"
+            highlight.Parent = player.Character
+            highlight.FillColor = StealthSettings.FillColor
+            highlight.OutlineColor = StealthSettings.OutlineColor
+            highlight.FillTransparency = 0.5
+            highlight.OutlineTransparency = 0
+            highlight.Enabled = StealthSettings.ESP
+            
+            if StealthSettings.TeamCheck and player.Team == LocalPlayer.Team then
+                highlight.Enabled = false
+            end
+        end
+    end
+    CreateHighlight()
+    player.CharacterAdded:Connect(CreateHighlight)
+end
+
+-- Refresh ESP Loop
+task.spawn(function()
+    while task.wait(1) do
+        if StealthSettings.ESP then
+            for _, v in pairs(Players:GetPlayers()) do
+                if v ~= LocalPlayer then ApplyESP(v) end
+            end
         end
     end
 end)
 
 --- [TABS] ---
 
-local AimTab = Window:CreateTab("Aimbot", 4483362458)
-AimTab:CreateToggle({ Name = "Enable Aimbot", CurrentValue = false, Callback = function(V) AimbotSettings.Enabled = V end })
-AimTab:CreateToggle({ Name = "Show FOV", CurrentValue = false, Callback = function(V) FOVCircle.Visible = V end })
-AimTab:CreateSlider({ Name = "FOV Size", Range = {50, 800}, Increment = 10, CurrentValue = 150, Callback = function(V) AimbotSettings.FieldOfView = V end })
+local CombatTab = Window:CreateTab("Combat", 4483362458)
+CombatTab:CreateToggle({
+    Name = "Aimbot Enabled",
+    CurrentValue = false,
+    Callback = function(v) StealthSettings.Aimbot = v end
+})
 
-local VisualTab = Window:CreateTab("Master ESP", 4483362458)
-VisualTab:CreateToggle({ Name = "Enable ESP Master", CurrentValue = false, Callback = function(V) ESPSettings.Enabled = V end })
-VisualTab:CreateToggle({ Name = "Boxes", CurrentValue = false, Callback = function(V) ESPSettings.Boxes = V end })
-VisualTab:CreateToggle({ Name = "Names", CurrentValue = false, Callback = function(V) ESPSettings.Names = V end })
-VisualTab:CreateToggle({ Name = "Health Bar", CurrentValue = false, Callback = function(V) ESPSettings.Health = V end })
-VisualTab:CreateToggle({ Name = "Tracers", CurrentValue = false, Callback = function(V) ESPSettings.Tracers = V end })
-VisualTab:CreateToggle({ Name = "Team Check", CurrentValue = false, Callback = function(V) ESPSettings.TeamCheck = V end })
-VisualTab:CreateColorPicker({ Name = "ESP Color", Color = Color3.fromRGB(255, 0, 0), Callback = function(V) ESPSettings.Color = V end })
+CombatTab:CreateSlider({
+    Name = "Aimbot FOV",
+    Range = {50, 800},
+    Increment = 10,
+    CurrentValue = 150,
+    Callback = function(v) StealthSettings.FOV = v end
+})
 
-local MiscTab = Window:CreateTab("Misc", 4483362458)
-MiscTab:CreateButton({ Name = "Infinite Yield", Callback = function() loadstring(game:HttpGet('https://raw.githubusercontent.com/Edgeiy/infiniteyield/master/source'))() end })
+local VisualTab = Window:CreateTab("Stealth Visuals", 4483362458)
+VisualTab:CreateToggle({
+    Name = "Highlight ESP",
+    CurrentValue = false,
+    Callback = function(v) 
+        StealthSettings.ESP = v 
+        for _, p in pairs(Players:GetPlayers()) do
+            if p.Character and p.Character:FindFirstChild("ErinHighlight") then
+                p.Character.ErinHighlight.Enabled = v
+            end
+        end
+    end
+})
+
+VisualTab:CreateToggle({
+    Name = "Team Check",
+    CurrentValue = false,
+    Callback = function(v) StealthSettings.TeamCheck = v end
+})
+
+VisualTab:CreateColorPicker({
+    Name = "Glow Color",
+    Color = Color3.fromRGB(255, 0, 0),
+    Callback = function(v) StealthSettings.FillColor = v end
+})
