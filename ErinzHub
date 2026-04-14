@@ -1,14 +1,14 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "Sol's RNG: Overlord v4 | Easter Update",
-   LoadingTitle = "Bypassing Aura Anticheat...",
+   Name = "Sol's RNG: Overlord V5 | April Patch",
+   LoadingTitle = "Applying Lag-Fix...",
    LoadingSubtitle = "by NotAmnesia",
    ConfigurationSaving = { Enabled = true, FolderName = "SolsOverlord" },
    KeySystem = true,
    KeySettings = {
-      Title = "Aura Master Access",
-      Subtitle = "Undetected 2026 System",
+      Title = "Elite Access",
+      Subtitle = "2026 Mobile Patch",
       Note = "Key: SOLS_APRIL_2026",
       FileName = "SolsKey",
       SaveKey = true,
@@ -16,121 +16,74 @@ local Window = Rayfield:CreateWindow({
    }
 })
 
--- SERVICES
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
+-- VARIABLES
+local Vars = { AutoRoll = false, AntiLag = true }
+local LogText = "Waiting for Remote..."
 
--- SETTINGS
-local Vars = {
-    AutoRoll = false,
-    AutoPot = false,
-    FastRoll = false,
-    EggFarm = false
-}
-
---- [TAB 1: AUTOMATION] ---
+--- [TAB: AUTO-ROLL] ---
 local MainTab = Window:CreateTab("Auto-Farm", 4483362458)
 
 MainTab:CreateToggle({
-    Name = "Smart Auto-Roll (Undetected)",
+    Name = "Smart Roll (Lag Fixed)",
     CurrentValue = false,
     Callback = function(v)
         Vars.AutoRoll = v
-        task.spawn(function()
-            while Vars.AutoRoll do
-                -- Uses Remote Interleaving (mimics real player clicks)
-                local rollRemote = ReplicatedStorage:FindFirstChild("Roll", true)
-                if rollRemote then
-                    rollRemote:FireServer("Auto")
-                    -- Randomized delay to stay undetected
-                    task.wait(0.5 + math.random() * 0.2) 
-                end
-            end
-        end)
-    end
-})
-
-MainTab:CreateToggle({
-    Name = "Auto-Collect Easter Eggs",
-    CurrentValue = false,
-    Callback = function(v)
-        Vars.EggFarm = v
-        task.spawn(function()
-            while Vars.EggFarm do
-                for _, obj in pairs(workspace:GetDescendants()) do
-                    if obj.Name:find("Egg") and obj:IsA("BasePart") then
-                        LocalPlayer.Character.HumanoidRootPart.CFrame = obj.CFrame
-                        task.wait(0.2)
+        if v then
+            task.spawn(function()
+                while Vars.AutoRoll do
+                    -- The Remote searcher (Checks for new 2026 names)
+                    local roll = game:GetService("ReplicatedStorage"):FindFirstChild("Roll", true) 
+                                 or game:GetService("ReplicatedStorage"):FindFirstChild("Click", true)
+                    
+                    if roll then
+                        roll:FireServer()
                     end
+                    
+                    -- CRITICAL: This prevent the freeze. Adjust for speed.
+                    task.wait(0.25) 
                 end
-                task.wait(1)
-            end
-        end)
-    end
-})
-
---- [TAB 2: LUCK BOOST] ---
-local LuckTab = Window:CreateTab("Luck & Potions", 4483362458)
-
-LuckTab:CreateButton({
-    Name = "Infinite Luck Potion Spoof",
-    Callback = function()
-        -- Spoofs the luck multiplier value locally
-        local stats = LocalPlayer:FindFirstChild("leaderstats")
-        if stats and stats:FindFirstChild("Luck") then
-            stats.Luck.Value = 999999 -- Visual only, but tricks some local guis
+            end)
         end
-        Rayfield:Notify({Title = "Spoofed", Content = "Luck Multiplier Active (Visual)"})
     end
 })
 
-LuckTab:CreateToggle({
-    Name = "Auto-Use Luck Potions",
-    CurrentValue = false,
-    Callback = function(v)
-        Vars.AutoPot = v
-        task.spawn(function()
-            while Vars.AutoPot do
-                local pot = ReplicatedStorage:FindFirstChild("UsePotion", true)
-                if pot then pot:FireServer("LuckPotion") end
-                task.wait(61) -- Potions last 60s
+--- [TAB: MOBILE DEBUG] ---
+local SpyTab = Window:CreateTab("Remote Spy", 4483362458)
+local SpyLabel = SpyTab:CreateLabel(LogText)
+
+SpyTab:CreateButton({
+    Name = "Sniff Remote (No F9 Needed)",
+    Callback = function()
+        Rayfield:Notify({Title = "Spy Active", Content = "Click the manual roll button once!"})
+        
+        local mt = getrawmetatable(game)
+        local old = mt.__namecall
+        setreadonly(mt, false)
+
+        mt.__namecall = newcclosure(function(self, ...)
+            local method = getnamecallmethod()
+            if method == "FireServer" and (self.Name:lower():find("roll") or self.Name:lower():find("aura")) then
+                LogText = "Found Remote: " .. self.Name
+                SpyLabel:Set(LogText)
             end
+            return old(self, ...)
         end)
+        setreadonly(mt, true)
     end
 })
 
---- [TAB 3: AURA TOOLS] ---
-local AuraTab = Window:CreateTab("Aura Tools", 4483362458)
+--- [TAB: WORLD] ---
+local WorldTab = Window:CreateTab("Performance", 4483362458)
 
-AuraTab:CreateButton({
-    Name = "Quick-Roll (No Animation)",
-    Callback = function()
-        -- Deletes the local roll UI to skip the wait time
-        local gui = LocalPlayer.PlayerGui:FindFirstChild("RollGui")
-        if gui then gui.Enabled = false end
-    end
-})
-
-AuraTab:CreateSection("Rare Aura Notifier")
-AuraTab:CreateToggle({
-    Name = "Discord Webhook on 1M+ Roll",
-    CurrentValue = false,
-    Callback = function(v)
-        -- Placeholder for Webhook logic
-    end
-})
-
---- [TAB 4: WORLD] ---
-local WorldTab = Window:CreateTab("World", 4483362458)
 WorldTab:CreateButton({
-    Name = "Anti-AFK (Infinite Farm)",
+    Name = "Delete 3D Auras (Extreme FPS)",
     Callback = function()
-        local vu = game:GetService("VirtualUser")
-        LocalPlayer.Idled:Connect(function()
-            vu:Button2Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
-            task.wait(1)
-            vu:Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
-        end)
+        -- Removes visual effects to stop mobile lag
+        for _, v in pairs(workspace:GetDescendants()) do
+            if v:IsA("ParticleEmitter") or v:IsA("Trail") then
+                v.Enabled = false
+            end
+        end
+        Rayfield:Notify({Title = "Boosted", Content = "FPS optimized for mobile."})
     end
 })
