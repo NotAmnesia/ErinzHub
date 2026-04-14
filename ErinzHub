@@ -1,14 +1,14 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "Erin's Jail Cell Elite | Ultimate v2",
-   LoadingTitle = "Bypassing Cell Security...",
+   Name = "Erin's SPTS Mugen Overlord",
+   LoadingTitle = "Breaking Power Limits...",
    LoadingSubtitle = "by NotAmnesia",
-   ConfigurationSaving = { Enabled = true, FolderName = "ErinJailCell" },
+   ConfigurationSaving = { Enabled = true, FolderName = "ErinMugen" },
    KeySystem = true,
    KeySettings = {
-      Title = "Premium Access",
-      Subtitle = "Cell Key System",
+      Title = "Elite Mugen Access",
+      Subtitle = "2026 Token System",
       Note = "Key: ERIN_2026_PREMIUM",
       FileName = "ErinKey",
       SaveKey = true,
@@ -24,116 +24,119 @@ local RunService = game:GetService("RunService")
 
 -- SETTINGS
 local Vars = {
-    AutoCollect = false,
-    InstaBuild = false,
-    AntiHorror = false,
-    Speed = 16
+    AutoFist = false,
+    AutoBody = false,
+    AutoMind = false,
+    AutoSpeed = false,
+    AutoTokens = false,
+    WalkSpeed = 16
 }
 
---- [TAB 1: MAIN FARM] ---
-local FarmTab = Window:CreateTab("Auto Farm", 4483362458)
+--- [TAB 1: AUTO-TRAIN] ---
+local TrainTab = Window:CreateTab("Auto Train", 4483362458)
 
-FarmTab:CreateSection("Economy")
-FarmTab:CreateToggle({
-    Name = "Auto-Collect Money Drops",
+TrainTab:CreateToggle({
+    Name = "Auto-Fist Strength",
     CurrentValue = false,
     Callback = function(v)
-        Vars.AutoCollect = v
+        Vars.AutoFist = v
         task.spawn(function()
-            while Vars.AutoCollect do
-                for _, obj in pairs(workspace:GetDescendants()) do
-                    if obj.Name == "Cash" or obj.Name == "Money" then
-                        -- Instantly fires the collection remote
-                        local remote = ReplicatedStorage:FindFirstChild("CollectMoney", true)
-                        if remote then remote:FireServer(obj) end
-                    end
-                end
+            while Vars.AutoFist do
+                -- Fires the punching remote
+                local remote = ReplicatedStorage:FindFirstChild("AddFistStrength", true) or ReplicatedStorage:FindFirstChild("PunchRemote", true)
+                if remote then remote:FireServer() end
+                task.wait(0.01) -- Insane speed for Mugen
+            end
+        end)
+    end
+})
+
+TrainTab:CreateToggle({
+    Name = "Auto-Body Toughness",
+    CurrentValue = false,
+    Callback = function(v)
+        Vars.AutoBody = v
+        task.spawn(function()
+            while Vars.AutoBody do
+                local remote = ReplicatedStorage:FindFirstChild("AddBodyToughness", true)
+                if remote then remote:FireServer() end
+                task.wait(0.01)
+            end
+        end)
+    end
+})
+
+--- [TAB 2: CURRENCY & TOKENS] ---
+local MoneyTab = Window:CreateTab("Currency Hub", 4483362458)
+
+MoneyTab:CreateToggle({
+    Name = "Auto-Collect Tokens (Bypass)",
+    CurrentValue = false,
+    Callback = function(v)
+        Vars.AutoTokens = v
+        task.spawn(function()
+            while Vars.AutoTokens do
+                -- Mugen games often have a "Daily" or "Clicker" token reward
+                local tokenRemote = ReplicatedStorage:FindFirstChild("AddTokens", true) or ReplicatedStorage:FindFirstChild("ClaimTokens", true)
+                if tokenRemote then tokenRemote:FireServer(999999) end
                 task.wait(1)
             end
         end)
     end
 })
 
-FarmTab:CreateButton({
-    Name = "Infinite VIP Plants (Auto-Spawn)",
+MoneyTab:CreateButton({
+    Name = "Infinite Token Multiplier Spoof",
     Callback = function()
-        -- Fires the event for the new April 2nd Plants Update
-        local plantRemote = ReplicatedStorage:FindFirstChild("PlantRemote", true)
-        if plantRemote then plantRemote:FireServer("SpawnVIP", 999) end
-    end
-})
-
---- [TAB 2: CELL MODS] ---
-local CellTab = Window:CreateTab("Cell Builder", 4483362458)
-
-CellTab:CreateToggle({
-    Name = "Instant Build (No Timer)",
-    CurrentValue = false,
-    Callback = function(v) Vars.InstaBuild = v end
-})
-
-CellTab:CreateButton({
-    Name = "Unlock All Furniture Items",
-    Callback = function()
-        -- Metatable Bypass to spoof ownership of VIP items
+        -- Spoofs VIP and multiplier values to double your gains
         local mt = getrawmetatable(game); setreadonly(mt, false)
-        local old = mt.__namecall
-        mt.__namecall = newcclosure(function(self, ...)
-            if self.Name == "CheckOwnership" then return true end
-            return old(self, ...)
+        local old = mt.__index
+        mt.__index = newcclosure(function(t, k)
+            if k == "TokenMultiplier" or k == "VIP" then return 1000 end
+            return old(t, k)
         end)
         setreadonly(mt, true)
-        Rayfield:Notify({Title = "Unlocked", Content = "All furniture now selectable!"})
+        Rayfield:Notify({Title = "Bypassed", Content = "Token gains multiplied by 1000x."})
     end
 })
 
---- [TAB 3: HORROR BYPASS] ---
-local HorrorTab = Window:CreateTab("Anti-Horror", 4483362458)
+--- [TAB 3: TELEPORTS] ---
+local TPTab = Window:CreateTab("Teleports", 4483362458)
 
-HorrorTab:CreateButton({
-    Name = "Disable Jumpscares",
+TPTab:CreateButton({
+    Name = "TP to 100T Training Zone",
     Callback = function()
-        for _, v in pairs(LocalPlayer.PlayerGui:GetDescendants()) do
-            if v.Name:lower():find("scare") or v.Name:lower():find("horror") then
-                v:Destroy()
+        LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(5000, 1000, 5000) -- Example High Tier Coords
+    end
+})
+
+TPTab:CreateButton({
+    Name = "TP to Token Spawn",
+    Callback = function()
+        -- Automatically finds the token crate
+        for _, v in pairs(workspace:GetDescendants()) do
+            if v.Name:find("Token") or v.Name:find("Crate") then
+                LocalPlayer.Character.HumanoidRootPart.CFrame = v.CFrame
+                break
             end
         end
     end
 })
 
-HorrorTab:CreateButton({
-    Name = "Full Bright (No Shadows)",
-    Callback = function()
-        game.Lighting.Brightness = 2
-        game.Lighting.GlobalShadows = false
-        game.Lighting.FogEnd = 9e9
-    end
-})
-
---- [TAB 4: STAFF & PLAYER] ---
-local PlayerTab = Window:CreateTab("Player", 4483362458)
+--- [TAB 4: PLAYER MODS] ---
+local PlayerTab = Window:CreateTab("Player Settings", 4483362458)
 
 PlayerTab:CreateSlider({
-    Name = "WalkSpeed",
-    Range = {16, 200},
-    Increment = 1,
+    Name = "Custom WalkSpeed",
+    Range = {16, 5000},
+    Increment = 10,
     CurrentValue = 16,
-    Callback = function(v) Vars.Speed = v end
-})
-
-PlayerTab:CreateButton({
-    Name = "Staff Cloak (Invisible)",
-    Callback = function()
-        LocalPlayer.Character.HumanoidRootPart.Transparency = 1
-        for _, v in pairs(LocalPlayer.Character:GetChildren()) do
-            if v:IsA("BasePart") then v.Transparency = 1 end
-        end
-    end
+    Callback = function(v) Vars.WalkSpeed = v end
 })
 
 -- [CORE LOOP]
 RunService.RenderStepped:Connect(function()
     if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-        LocalPlayer.Character.Humanoid.WalkSpeed = Vars.Speed
+        LocalPlayer.Character.Humanoid.WalkSpeed = Vars.WalkSpeed
     end
 end)
