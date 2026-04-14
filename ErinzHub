@@ -1,19 +1,19 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
--- [[ CONFIG ]]
+-- [[ PRIVATE SETTINGS ]]
 local AdminKey = "erin01"
 local DeathPos = nil
-local AutoSpawnEnabled = true
+local AutoSystem = true
 
 local Window = Rayfield:CreateWindow({
-   Name = "Erin's Private | SPTS Mugen Bypass",
-   LoadingTitle = "Bypassing Spawn Screen...",
+   Name = "Erin's Private | SPTS Mugen Bypass V2",
+   LoadingTitle = "Bypassing Menu State...",
    LoadingSubtitle = "by NotAmnesia",
    ConfigurationSaving = { Enabled = true, FolderName = "ErinPrivate" },
    KeySystem = true,
    KeySettings = {
       Title = "Private Access",
-      Subtitle = "Instant Spawn & Return",
+      Subtitle = "Zero-Delay Respawn",
       Note = "Key: erin01",
       FileName = "ErinPrivate",
       SaveKey = true,
@@ -24,69 +24,77 @@ local Window = Rayfield:CreateWindow({
 -- SERVICES
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
-local VirtualInputManager = game:GetService("VirtualInputManager")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
---- [TAB: AUTO-BYPASS] ---
+--- [TAB: BYPASS] ---
 local MainTab = Window:CreateTab("Automation", 4483362458)
 
 MainTab:CreateToggle({
-    Name = "Auto-Click SPAWN & Return",
+    Name = "Active Death Anchor & Auto-Spawn",
     CurrentValue = true,
-    Callback = function(v)
-        AutoSpawnEnabled = v
-    end
+    Callback = function(v) AutoSystem = v end
 })
 
--- [[ THE BYPASS ENGINE ]]
+-- [[ THE AGGRESSIVE ENGINE ]]
 
--- Function to find and click the "SPAWN" button
+-- 1. FORCE SPAWN (Bypasses the GUI entirely)
 local function ForceSpawn()
-    local playerGui = LocalPlayer:WaitForChild("PlayerGui")
-    -- We search for the button based on the text "SPAWN" seen in your screenshot
-    for _, gui in pairs(playerGui:GetDescendants()) do
-        if gui:IsA("TextButton") and gui.Text:upper():find("SPAWN") and gui.Visible then
-            -- Simulate a physical click on the center of the button
-            local x, y = gui.AbsolutePosition.X + (gui.AbsoluteSize.X / 2), gui.AbsolutePosition.Y + (gui.AbsoluteSize.Y / 2)
-            VirtualInputManager:SendMouseButtonEvent(x, y, 0, true, game, 0)
-            task.wait(0.1)
-            VirtualInputManager:SendMouseButtonEvent(x, y, 0, false, game, 0)
-            return true
+    -- Look for common SPTS Mugen remotes first (Fastest)
+    local remotes = {"Spawn", "LoadCharacter", "RequestSpawn", "Start"}
+    for _, name in pairs(remotes) do
+        local r = ReplicatedStorage:FindFirstChild(name, true)
+        if r and r:IsA("RemoteEvent") then
+            r:FireServer()
         end
     end
-    return false
-end
-
--- Monitor for Death and Respawn
-local function MonitorLife()
-    LocalPlayer.CharacterAdded:Connect(function(char)
-        if not AutoSpawnEnabled then return end
-        
-        -- 1. Check if the "SPAWN" screen is up and click it
-        task.spawn(function()
-            local clicked = false
-            repeat
-                clicked = ForceSpawn()
-                task.wait(0.5)
-            until clicked or not AutoSpawnEnabled
-        end)
-
-        -- 2. Return to last spot after clicking spawn
-        task.wait(1.2) -- Extra buffer for SPTS loading
-        if DeathPos then
-            local hrp = char:WaitForChild("HumanoidRootPart", 5)
-            if hrp then 
-                hrp.CFrame = DeathPos 
+    
+    -- Fallback: Manual UI clicking if remote is hidden
+    local pGui = LocalPlayer:FindFirstChild("PlayerGui")
+    if pGui then
+        for _, v in pairs(pGui:GetDescendants()) do
+            if v:IsA("TextButton") and v.Text:upper():find("SPAWN") and v.Visible then
+                -- Fires the internal button click event directly
+                for _, connection in pairs(getconnections(v.MouseButton1Click)) do
+                    connection:Fire()
+                end
             end
         end
+    end
+end
 
-        -- 3. Watch for next death
-        local hum = char:WaitForChild("Humanoid")
-        hum.Died:Connect(function()
-            if char:FindFirstChild("HumanoidRootPart") then
-                DeathPos = char.HumanoidRootPart.CFrame
-            end
+-- 2. THE RECALL LOOP
+local function HandleCharacter(char)
+    if not AutoSystem then return end
+    
+    -- Save position when you die
+    local hum = char:WaitForChild("Humanoid")
+    hum.Died:Connect(function()
+        if char:FindFirstChild("HumanoidRootPart") then
+            DeathPos = char.HumanoidRootPart.CFrame
+        end
+        
+        -- IMMEDIATELY start spamming spawn request
+        task.spawn(function()
+            repeat 
+                ForceSpawn()
+                task.wait(0.5) 
+            until LocalPlayer.Character ~= char
         end)
     end)
 end
 
-task.spawn(MonitorLife)
+-- 3. THE TELEPORT (Snaps you back once you load)
+LocalPlayer.CharacterAdded:Connect(function(char)
+    HandleCharacter(char)
+    
+    if AutoSystem and DeathPos then
+        -- Wait for the black screen to fade (Crucial for Mugen)
+        repeat task.wait() until char:FindFirstChild("HumanoidRootPart")
+        task.wait(0.8) 
+        char.HumanoidRootPart.CFrame = DeathPos
+        Rayfield:Notify({Title = "Anchor Set", Content = "Returned to last location."})
+    end
+end)
+
+-- Initialize
+if LocalPlayer.Character then HandleCharacter(LocalPlayer.Character) end
